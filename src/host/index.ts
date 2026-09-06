@@ -286,7 +286,15 @@ export async function createHost(options: { maxRooms?: number } = {}) {
         if (msg.type === "action") {
           if (
             !Number.isSafeInteger(msg.request) ||
-            !["pickup", "drop", "throw", "shoot", "door"].includes(msg.action)
+            ![
+              "pickup",
+              "drop",
+              "throw",
+              "shoot",
+              "swing",
+              "honk",
+              "door",
+            ].includes(msg.action)
           )
             throw Error("Invalid action");
           if (member.actions.has(msg.request)) return;
@@ -296,6 +304,8 @@ export async function createHost(options: { maxRooms?: number } = {}) {
           // Every one of these is decided here: the ray, the owner, the leaf.
           const shot =
             msg.action === "shoot" ? room.sim.shoot(member.id) : null;
+          const swing =
+            msg.action === "swing" ? room.sim.swing(member.id) : null;
           const opened =
             msg.action === "door"
               ? room.sim.toggleDoor(member.id, Number(msg.object))
@@ -303,11 +313,15 @@ export async function createHost(options: { maxRooms?: number } = {}) {
           const accepted =
             msg.action === "shoot"
               ? !!shot
-              : msg.action === "door"
-                ? opened !== null
-                : msg.action === "pickup"
-                  ? room.sim.pickup(member.id, Number(msg.object))
-                  : room.sim.release(member.id, msg.action === "throw");
+              : msg.action === "swing"
+                ? !!swing
+                : msg.action === "honk"
+                  ? room.sim.honk(member.id)
+                  : msg.action === "door"
+                    ? opened !== null
+                    : msg.action === "pickup"
+                      ? room.sim.pickup(member.id, Number(msg.object))
+                      : room.sim.release(member.id, msg.action === "throw");
           send(ws, {
             type: "action-result",
             request: msg.request,
@@ -315,8 +329,14 @@ export async function createHost(options: { maxRooms?: number } = {}) {
             accepted,
           });
           if (shot) broadcast(room, { type: "shot", ...shot });
+          else if (swing) broadcast(room, { type: "swing", ...swing });
           else if (accepted && msg.action !== "door")
-            broadcast(room, { type: "sound", id: member.id, kind: msg.action });
+            broadcast(room, {
+              type: "sound",
+              id: member.id,
+              kind: msg.action,
+              object: room.sim.players.get(member.id)?.state.held ?? 0,
+            });
           return;
         }
         if (msg.type === "voice-ready") {

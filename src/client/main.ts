@@ -7,7 +7,7 @@ import "./style.css";
 import { MovementSounds } from "./audio/movement";
 import * as THREE from "three";
 import { initPhysics, Simulation, type Character } from "../shared/simulation";
-import { STEP, PALETTE, CHARACTER_PALETTE, WEAPON, DOORS, propKind } from "../shared/level";
+import { STEP, PALETTE, CHARACTER_PALETTE, WEAPON, MELEE, HORN, DOORS, propKind } from "../shared/level";
 import {
   BUTTON,
   decodeSnapshot,
@@ -22,13 +22,12 @@ const $ = <T extends HTMLElement = HTMLElement>(id: string) =>
   document.getElementById(id) as T;
 $("app").innerHTML = `<div id="world"></div><div id="shade" class="shade"></div>
 <header class="topbar"><button id="about-button" class="brand" aria-label="About Friendslop Base"><span class="brand-mark"><svg viewBox="0 0 192 192" aria-hidden="true"><rect x="17" y="17" width="158" height="158" rx="46" fill="#26382d" transform="rotate(-11 96 96)"/><g fill="#d5ec99"><path d="M53.5 34.5L65.95 54.43A23.5 23.5 0 1 1 76.87 36.96Z"/><path d="M4 114a49.5 49.5 0 0 1 99 0Z"/><path d="M140 87.5L126.02 66.77A25 25 0 1 1 115 87.5Z"/><path d="M89 170a50.5 50.5 0 0 1 101 0Z"/></g></svg></span><span class="brand-word">friendslop <b>base</b></span><small></small></button><div id="top-actions" class="top-actions"><span id="net-mode" class="pill net-mode" hidden><i class="dot"></i> <span id="net-mode-text"></span></span><button id="help-button" class="icon-button" aria-label="Controls and help">?</button></div></header>
-<main id="lobby" class="lobby"><div class="eyebrow">A space for your people</div><h1><span class="line"><span>The Starter Kit</span></span><span class="line"><span>for <em>Friendslop.</em></span></span></h1><p class="intro">An open-source Friendslop template.<br>Built with Three.js, Rapier physics, and spatial voice.</p><a class="github-button" href="https://github.com/larshurrelb/friendslop-base" target="_blank" rel="noopener noreferrer" aria-label="Get Friendslop Base on GitHub">Get it on GitHub <span class="github-arrow" aria-hidden="true">↗</span></a><form id="entry" class="entry-card"><label for="name">WHAT SHOULD WE CALL YOU?</label><div class="name-input"><div class="avatar-chip">✳</div><input id="name" aria-label="Your name" autocomplete="nickname" maxlength="20" placeholder="Your name" required value="Guest"></div><button class="primary" id="create" type="submit">Create a room <span>↗</span></button><div class="separator">or find your friends</div><div class="join-row"><input id="join-code" aria-label="Room code" placeholder="ROOM CODE" maxlength="6" autocomplete="off"><button id="join" type="button">Join →</button></div><div class="entry-note">No accounts. Just a room code.</div><p id="entry-error" class="error" hidden></p></form><div class="lobby-foot"><span>Up to 8 friends</span><span>Proximity voice</span><span>Yours to build on</span></div><p class="mobile-notice">A keyboard and mouse are required to play.</p></main>
-<div id="scene-caption" class="scene-caption"><b>Your next idea starts in here.</b><small>01 / THE COMMON ROOM</small><small class="drag-hint">Drag to turn · scroll to zoom</small></div>
+<main id="lobby" class="lobby"><div class="eyebrow">A space to hang out</div><h1><span class="line"><span>The Starter Kit</span></span><span class="line"><span>for <em>Friendslop.</em></span></span></h1><p class="intro">An open-source Friendslop template.<br>Built with Three.js, Rapier physics, and spatial voice.</p><a class="github-button" href="https://github.com/larshurrelb/friendslop-base" target="_blank" rel="noopener noreferrer" aria-label="Get Friendslop Base on GitHub">Get it on GitHub <span class="github-arrow" aria-hidden="true">↗</span></a><form id="entry" class="entry-card"><label for="name">WHAT SHOULD WE CALL YOU?</label><div class="name-input"><div class="avatar-chip">✳</div><input id="name" aria-label="Your name" autocomplete="nickname" maxlength="20" placeholder="Your name" required value="Guest"></div><button class="primary" id="create" type="submit">Create a room <span>↗</span></button><div class="separator">or find your friends</div><div class="join-row"><input id="join-code" aria-label="Room code" placeholder="ROOM CODE" maxlength="6" autocomplete="off"><button id="join" type="button">Join →</button></div><div class="entry-note">No accounts. Just a room code.</div><p id="entry-error" class="error" hidden></p></form><div class="lobby-foot"><span>Up to 8 friends</span><span>Proximity voice</span><span>Yours to build on</span></div><p class="mobile-notice">A keyboard and mouse are required to play.</p></main>
 <footer id="footer" class="footer"><span>A small beginning for a very good time.</span><span class="version">FRIENDSLOP BASE &nbsp; / &nbsp; v0.1</span></footer>
 <div id="hud" class="hud" hidden><div class="room-bar"><div><small>YOUR ROOM</small><span id="room-code" class="room-code">------</span></div><button id="copy-room" aria-label="Copy room invite">Copy invite ↗</button><span id="player-count" class="count">1 / 8</span></div><div id="crosshair" class="crosshair"></div><div id="hitflash" class="hitflash"></div><div id="interact" class="interact" hidden></div><div class="bottom-left"><span class="zone-icon">⌂</span><div><div id="zone-name" class="zone-name">The common room</div><div id="zone-desc" class="zone-desc">SMALL ROOM · SOFT REFLECTIONS</div></div></div><div class="voice-controls"><button id="enable-voice">Enable voice</button><button id="mute" hidden aria-label="Mute microphone">Mic on</button><select id="voice-mode" aria-label="Microphone mode"><option value="open">Open mic</option><option value="ptt">Push to talk</option></select><span id="speaking-light" class="speaking-light"></span></div><div class="bottom-right"><button id="friends-button">Friends <span id="friend-number">1</span></button><button id="debug-button">Diagnostics <span>⌁</span></button></div><div id="pause" class="pause"><div class="eyebrow" style="justify-content:center">You’re in good company</div><h2>Make yourself at home.</h2><p>Explore the room and bring a friend.<br>There’s nothing to win. Yet.</p><button id="resume" class="primary">Click to explore →</button><small>WASD to move · Mouse to look · Esc to pause</small></div></div>
 <aside id="friends" class="drawer" hidden><button class="close" data-close="friends" aria-label="Close friends">×</button><h3>In good company</h3><div id="member-list"></div><button id="solo-tab" class="primary">Open a second player <span>↗</span></button><p class="debug-note">Test solo in another tab. Use headphones when testing microphones.</p><button id="leave" class="primary" style="background:transparent;color:#637554;border-color:#c4d0b6">Leave room</button></aside>
 <aside id="debug" class="drawer" hidden><button class="close" data-close="debug" aria-label="Close diagnostics">×</button><h3>Under the hood</h3><div id="metrics" class="metrics"></div><div id="peer-debug"></div><p id="codec-status" class="debug-note"></p><p id="net-detail" class="debug-note"></p></aside>
-<aside id="help" class="drawer" hidden><button class="close" data-close="help" aria-label="Close help">×</button><h3>A little field guide</h3><div class="help-grid"><div><kbd class="key">W A S D</kbd></div><span>Move around</span><div><kbd class="key">Mouse</kbd></div><span>Look around</span><div><kbd class="key">Shift</kbd></div><span>Sprint</span><div><kbd class="key">Ctrl / C</kbd></div><span>Crouch</span><div><kbd class="key">Space</kbd></div><span>Jump</span><div><kbd class="key">E</kbd></div><span>Pick up / drop</span><div><kbd class="key">Q</kbd></div><span>Throw held object</span><div><kbd class="key">Click / F</kbd></div><span>Fire a gun you are holding</span><div><kbd class="key">V</kbd></div><span>Push to talk</span><div><kbd class="key">M</kbd></div><span>Mute microphone</span><div><kbd class="key">Esc</kbd></div><span>Release mouse</span></div><p class="about-copy">Voices get quieter with distance. Walk into the hall to hear the room change.</p><p class="about-copy">Doors open with <b>E</b>; the workshop doors open by themselves. Nobody can be hurt here — a hit just shoves you.</p></aside>
+<aside id="help" class="drawer" hidden><button class="close" data-close="help" aria-label="Close help">×</button><h3>A little field guide</h3><div class="help-grid"><div><kbd class="key">W A S D</kbd></div><span>Move around</span><div><kbd class="key">Mouse</kbd></div><span>Look around</span><div><kbd class="key">Tab</kbd></div><span>First / third person</span><div><kbd class="key">Shift</kbd></div><span>Sprint</span><div><kbd class="key">Ctrl / C</kbd></div><span>Crouch</span><div><kbd class="key">Space</kbd></div><span>Jump</span><div><kbd class="key">E</kbd></div><span>Pick up / drop</span><div><kbd class="key">Q</kbd></div><span>Throw held object</span><div><kbd class="key">Click / F</kbd></div><span>Fire, swing or honk</span><div><kbd class="key">V</kbd></div><span>Push to talk</span><div><kbd class="key">M</kbd></div><span>Mute microphone</span><div><kbd class="key">Esc</kbd></div><span>Release mouse</span></div><p class="about-copy">Voices get quieter with distance. Walk into the hall to hear the room change.</p><p class="about-copy">Doors open with <b>E</b>; the workshop doors open by themselves. Nobody can be hurt here — a hit just shoves you.</p></aside>
 <aside id="about" class="drawer" hidden><button class="close" data-close="about" aria-label="Close about">×</button><h3>A starting point, together.</h3><p class="about-copy">Friendslop is an open-source starter for small multiplayer games. A shared world, physical objects and voices that live in the room.</p><p class="about-copy">This is the common room. The game you make from it is entirely up to you.</p><p class="debug-note">Three.js · Rapier · TypeScript<br>Original Blender characters & synthetic acoustics</p></aside><div id="toast" class="toast" hidden></div><div id="loading" class="loading">Opening the common room…</div>`;
 const scene = new GameScene($("world"));
 let sim: Simulation | undefined,
@@ -43,8 +42,11 @@ let sim: Simulation | undefined,
   action = 0;
 let connected = false,
   intentional = false;
+let cameraMode: "first" | "third" = "first";
 let yaw = 0,
   pitch = 0,
+  cameraYaw = 0,
+  cameraPitch = 0,
   acc = 0,
   last = performance.now(),
   ping = 0,
@@ -70,7 +72,7 @@ const keys = new Set<string>(),
 const offset = new THREE.Vector3();
 let noticeTimer: ReturnType<typeof setTimeout>,
   hitTimer: ReturnType<typeof setTimeout>,
-  lastShot = 0;
+  lastUse = 0;
 function toast(message: string) {
   $("toast").textContent = message;
   $("toast").hidden = false;
@@ -137,13 +139,7 @@ const movementSounds = new MovementSounds((position, kind) => voice.spatial?.eff
 function setPlaying(value: boolean) {
   movementSounds.clear();
   document.body.classList.toggle("playing", value);
-  for (const name of [
-    "lobby",
-    "shade",
-    "footer",
-    "scene-caption",
-    "top-actions",
-  ])
+  for (const name of ["lobby", "shade", "footer", "top-actions"])
     $(name).hidden = value;
   $("hud").hidden = !value;
   scene.setPlaying(value);
@@ -241,6 +237,9 @@ async function connect() {
             get sim() {
               return sim;
             },
+            get cameraMode() {
+              return cameraMode;
+            },
             input: (key: string, down: boolean) =>
               down ? keys.add(key) : keys.delete(key),
             action: interact,
@@ -251,6 +250,8 @@ async function connect() {
             look: (y: number, p: number) => {
               yaw = y;
               pitch = p;
+              cameraYaw = y;
+              cameraPitch = p;
             },
             join,
             send,
@@ -282,11 +283,12 @@ async function connect() {
             ? local?.state
             : snapshots.at(-1)?.s.players.find((p) => p.id === m.id);
         if (s) voice.spatial?.effect(s, m.kind);
+        if (m.kind === "honk" && m.object) scene.useProp(m.object, "horn");
       }
       if (m.type === "shot") {
         // Our own shot was drawn the moment we pulled the trigger.
         if (m.id !== id) {
-          scene.tracer(m);
+          scene.tracer(m, scene.muzzle(m.object));
           voice.spatial?.effect(m, "shoot");
         }
         if (m.hit) {
@@ -305,6 +307,26 @@ async function connect() {
           }
         }
       }
+      if (m.type === "swing") {
+        scene.useProp(m.object, "bat");
+        const swinger =
+          m.id === id
+            ? local?.state
+            : snapshots.at(-1)?.s.players.find((p) => p.id === m.id);
+        if (swinger) voice.spatial?.effect(sim!.eye(swinger), "swing");
+        if (m.hit) {
+          const struck =
+            m.hit === id
+              ? local?.state
+              : snapshots.at(-1)?.s.players.find((p) => p.id === m.hit);
+          if (struck) voice.spatial?.effect(sim!.eye(struck), "hit");
+          if (m.hit === id) {
+            $("hitflash").classList.add("on");
+            clearTimeout(hitTimer);
+            hitTimer = setTimeout(() => $("hitflash").classList.remove("on"), 260);
+          }
+        }
+      }
       if (m.type === "door") {
         sim?.setDoor(m.id, m.open);
         const door = DOORS.find((d) => d.id === m.id);
@@ -316,8 +338,8 @@ async function connect() {
       }
       if (m.type === "action-result" && !m.accepted)
         toast(
-          m.action === "shoot"
-            ? "Nothing to fire. Pick up a gun first."
+          ["shoot", "swing", "honk"].includes(m.action)
+            ? "That item is not ready yet."
             : m.action === "door"
               ? "That door will not budge from here."
               : "That object is out of reach or already held.",
@@ -414,25 +436,49 @@ function interact(throwing = false) {
     object: sim.target(s),
   });
 }
-/** Pull the trigger: predict the tracer locally, let the authority decide the hit. */
+/** Use the held tool immediately; the authority still decides hits and cooldowns. */
 function fire() {
-  if (!local || !sim || propKind(local.state.held) !== "gun") return;
+  if (!local || !sim) return;
+  const held = local.state.held,
+    kind = propKind(held);
+  if (kind !== "gun" && kind !== "bat" && kind !== "horn") return;
   const now = performance.now();
-  if (now - lastShot < WEAPON.cooldown * STEP * 1000) return;
-  lastShot = now;
-  send({ type: "action", request: ++action, action: "shoot" });
+  const cooldown =
+    (kind === "gun" ? WEAPON.cooldown : kind === "bat" ? MELEE.cooldown : HORN.cooldown) *
+    STEP * 1000;
+  if (now - lastUse < cooldown) return;
+  lastUse = now;
+  send({
+    type: "action",
+    request: ++action,
+    action: kind === "gun" ? "shoot" : kind === "bat" ? "swing" : "honk",
+  });
+  if (kind !== "gun") {
+    scene.useProp(held, kind);
+    return;
+  }
   const s = local.state,
     eye = sim.eye(s),
-    d = sim.direction(s);
+    d = sim.direction(s),
+    distance = sim.reach(s),
+    end = new THREE.Vector3(
+      eye.x + d.x * distance,
+      eye.y + d.y * distance,
+      eye.z + d.z * distance,
+    ),
+    muzzle = scene.muzzle(held) ?? sim.muzzle(s),
+    direction = end.clone().sub(new THREE.Vector3(muzzle.x, muzzle.y, muzzle.z)),
+    length = direction.length();
+  direction.normalize();
   scene.tracer({
-    ...eye,
-    dx: d.x,
-    dy: d.y,
-    dz: d.z,
-    distance: sim.reach(s),
+    ...muzzle,
+    dx: direction.x,
+    dy: direction.y,
+    dz: direction.z,
+    distance: length,
     hit: 0,
   });
-  voice.spatial?.effect(eye, "shoot");
+  voice.spatial?.effect(muzzle, "shoot");
 }
 $("entry").addEventListener("submit", (e) => {
   e.preventDefault();
@@ -547,8 +593,16 @@ document.addEventListener("pointerlockchange", () => {
 });
 addEventListener("mousemove", (e) => {
   if (document.pointerLockElement || (previewControls && e.buttons === 1)) {
-    yaw -= e.movementX * 0.002;
-    pitch = Math.max(-1.5, Math.min(1.5, pitch + e.movementY * 0.002));
+    if (cameraMode === "third") {
+      cameraYaw -= e.movementX * 0.002;
+      cameraPitch = Math.max(
+        -1.5,
+        Math.min(1.5, cameraPitch + e.movementY * 0.002),
+      );
+    } else {
+      yaw -= e.movementX * 0.002;
+      pitch = Math.max(-1.5, Math.min(1.5, pitch + e.movementY * 0.002));
+    }
   }
 });
 addEventListener("keydown", (e) => {
@@ -569,6 +623,22 @@ addEventListener("keydown", (e) => {
     !(import.meta.env.DEV && params.has("test"))
   )
     return;
+  if (e.code === "Tab") {
+    e.preventDefault();
+    if (!e.repeat) {
+      cameraMode = cameraMode === "first" ? "third" : "first";
+      if (cameraMode === "third") {
+        cameraYaw = yaw;
+        cameraPitch = pitch;
+      } else {
+        yaw = cameraYaw;
+        pitch = cameraPitch;
+        scene.removePlayer(id);
+      }
+      toast(cameraMode === "third" ? "Third-person view" : "First-person view");
+    }
+    return;
+  }
   keys.add(e.code);
   if (["Space", "ControlLeft", "Tab"].includes(e.code)) e.preventDefault();
   if (!e.repeat && e.code === "KeyE") interact();
@@ -634,6 +704,7 @@ $("leave").onclick = () => {
   code = "";
   voice.disconnect();
   connected = false;
+  cameraMode = "first";
   sessionStorage.removeItem("friendslop:session");
   pauseControls();
   for (const [pid] of scene.avatars) if (pid < 60000) scene.removePlayer(pid);
@@ -717,6 +788,13 @@ function frame(now: number) {
     let steps = 0;
     while (acc >= STEP && steps++ < 5) {
       acc -= STEP;
+      if (
+        cameraMode === "third" &&
+        ["KeyW", "KeyA", "KeyS", "KeyD"].some((key) => keys.has(key))
+      ) {
+        yaw = cameraYaw;
+        pitch = cameraPitch;
+      }
       const input: Input = {
         seq: ++seq,
         x: Number(keys.has("KeyD")) - Number(keys.has("KeyA")),
@@ -744,12 +822,27 @@ function frame(now: number) {
     const s = local.state,
       eye = sim.eye(s);
     movementSounds.update(s, now);
-    scene.camera.position.set(
-      eye.x + offset.x,
-      eye.y + offset.y,
-      eye.z + offset.z,
-    );
-    scene.camera.rotation.set(-pitch, yaw, 0, "YXZ");
+    if (cameraMode === "third") {
+      scene.updatePlayer(
+        s,
+        name,
+        dt,
+        members.find((m) => m.id === id)?.color,
+        false,
+      );
+      scene.thirdPersonCamera(
+        { x: s.x + offset.x, y: s.y + offset.y, z: s.z + offset.z },
+        cameraYaw,
+        cameraPitch,
+      );
+    } else {
+      scene.camera.position.set(
+        eye.x + offset.x,
+        eye.y + offset.y,
+        eye.z + offset.z,
+      );
+      scene.camera.rotation.set(-pitch, yaw, 0, "YXZ");
+    }
     const targetTime = now - 100;
     let a = snapshots[0],
       b = snapshots.at(-1);
@@ -817,14 +910,23 @@ function frame(now: number) {
     const door = s.held || target ? 0 : sim.doorTarget(s);
     scene.setHighlight(target);
     $("crosshair").classList.toggle("target", !!target || !!door);
-    $("crosshair").classList.toggle("armed", propKind(s.held) === "gun");
+    $("crosshair").classList.toggle(
+      "armed",
+      ["gun", "bat", "horn"].includes(propKind(s.held) ?? ""),
+    );
     $("interact").hidden =
       (!target && !door && !s.held) ||
       (!document.pointerLockElement && !previewControls);
     $("interact").innerHTML = s.held
       ? `<kbd class="key">E</kbd> Drop <span style="margin-left:10px"><kbd class="key">Q</kbd> Throw</span>${
-          propKind(s.held) === "gun"
-            ? '<span style="margin-left:10px"><kbd class="key">Click</kbd> Fire</span>'
+          ["gun", "bat", "horn"].includes(propKind(s.held) ?? "")
+            ? `<span style="margin-left:10px"><kbd class="key">Click</kbd> ${
+                propKind(s.held) === "gun"
+                  ? "Fire"
+                  : propKind(s.held) === "bat"
+                    ? "Swing"
+                    : "Honk"
+              }</span>`
             : ""
         }`
       : door
@@ -835,7 +937,11 @@ function frame(now: number) {
     const [zoneName, zoneDesc] = zone(s);
     $("zone-name").textContent = zoneName;
     $("zone-desc").textContent = zoneDesc;
-    voice.spatial?.update(scene.camera.position, yaw, pitch);
+    voice.spatial?.update(
+      scene.camera.position,
+      cameraMode === "third" ? cameraYaw : yaw,
+      cameraMode === "third" ? cameraPitch : pitch,
+    );
   } else {
     acc = 0;
     scene.overview(dt);

@@ -4,6 +4,7 @@ test-results/
 playwright-report/
 capture-output/
 capture-*-output/
+demo-content/
 *.blend1
 .DS_Store
 .env

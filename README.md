@@ -13,7 +13,7 @@ The stack is TypeScript, Three.js, Rapier, WebSockets/WebRTC, Vite, and
 Playwright. Code and original assets are MIT licensed.
 
 <p align="center">
-  <img src="docs/media/lobby.webp" width="49%" alt="Friendslop Base lobby and building overview">
+  <img src="docs/media/lobby.webp" width="49%" alt="Friendslop Base landing page with three characters talking in the common room">
   <img src="docs/media/character.webp" width="49%" alt="Seven Friendslop players using proximity voice in the common room">
 </p>
 

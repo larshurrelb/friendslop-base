@@ -11,7 +11,7 @@ import {
   changedProp,
 } from "../src/shared/protocol.js";
 import { initPhysics, Simulation } from "../src/shared/simulation.js";
-import { PROPS, WEAPON } from "../src/shared/level.js";
+import { HORN, MELEE, PROPS, WEAPON } from "../src/shared/level.js";
 import { createEncoder, createDecoder } from "libopus-wasm";
 await initPhysics();
 test("binary input round trip and malformed packet rejection", () => {
@@ -216,6 +216,39 @@ test("a gun shoves whoever it hits, staggers them, and never removes them", () =
   assert.ok(sim.players.has(2) && victim.state.y > -1, "nobody dies in here");
   for (let i = 0; i < WEAPON.cooldown; i++) sim.step();
   assert.ok(sim.shoot(1), "the gun is ready again");
+  sim.dispose();
+});
+test("a bat has a short forgiving shove and a horn is rate-limited", () => {
+  const sim = new Simulation(),
+    hitter = sim.addPlayer(1),
+    victim = sim.addPlayer(2),
+    bat = PROPS.findIndex((p) => p.kind === "bat") + 1,
+    horn = PROPS.findIndex((p) => p.kind === "horn") + 1;
+  sim.restore(hitter, {
+    ...hitter.state,
+    x: 0,
+    y: 0.87,
+    z: 2,
+    yaw: 0,
+    pitch: 0,
+    held: bat,
+  });
+  sim.restore(victim, { ...victim.state, x: 0.35, y: 0.87, z: 0.15 });
+  sim.owners.set(bat, 1);
+  sim.step();
+  const swing = sim.swing(1);
+  assert.equal(swing?.hit, 2);
+  assert.equal(sim.swing(1), null, "the bat cannot be spammed every tick");
+  assert.equal(victim.state.stagger, MELEE.stagger);
+  assert.ok(victim.state.vz < -8, "the bat launches away from its hitter");
+
+  hitter.state.held = horn;
+  sim.owners.set(bat, 0);
+  sim.owners.set(horn, 1);
+  assert.equal(sim.honk(1), true);
+  assert.equal(sim.honk(1), false, "the horn is authority-rate-limited");
+  for (let i = 0; i < HORN.cooldown; i++) sim.step();
+  assert.equal(sim.honk(1), true);
   sim.dispose();
 });
 test("staggered players keep only a fraction of their own steering", () => {

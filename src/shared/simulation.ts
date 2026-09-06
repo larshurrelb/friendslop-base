@@ -4,6 +4,8 @@ import {
   DOOR_TRAVEL,
   DOORS,
   LEVEL,
+  HORN,
+  MELEE,
   PROPS,
   propKind,
   SPAWNS,
@@ -45,6 +47,7 @@ export type DoorRuntime = {
 export type DoorState = { id: number; open: boolean; progress: number };
 export type Shot = {
   id: number;
+  object: number;
   x: number;
   y: number;
   z: number;
@@ -54,6 +57,7 @@ export type Shot = {
   distance: number;
   hit: number;
 };
+export type Swing = { id: number; object: number; hit: number };
 /** Each prop kind is a different thing to throw: a crate thuds, a ball bounces. */
 function shape(kind: PropKind) {
   if (kind === "ball")
@@ -67,6 +71,16 @@ function shape(kind: PropKind) {
       .setMass(1.1)
       .setFriction(0.7)
       .setRestitution(0.1);
+  if (kind === "bat")
+    return RAPIER.ColliderDesc.cuboid(0.09, 0.09, 0.55)
+      .setMass(0.95)
+      .setFriction(0.72)
+      .setRestitution(0.2);
+  if (kind === "horn")
+    return RAPIER.ColliderDesc.cuboid(0.16, 0.13, 0.32)
+      .setMass(0.7)
+      .setFriction(0.68)
+      .setRestitution(0.14);
   return RAPIER.ColliderDesc.cuboid(0.3, 0.3, 0.3)
     .setMass(1.5)
     .setFriction(0.8)
@@ -81,6 +95,8 @@ export class Simulation {
   /** Door ids whose open state changed since the authority last drained them. */
   doorEvents: number[] = [];
   private cooldowns = new Map<number, number>();
+  private meleeCooldowns = new Map<number, number>();
+  private hornCooldowns = new Map<number, number>();
   private frame = 0;
   constructor(public prediction = false) {
     this.world.timestep = STEP;
@@ -175,6 +191,8 @@ export class Simulation {
     this.world.removeRigidBody(c.body);
     this.players.delete(id);
     this.cooldowns.delete(id);
+    this.meleeCooldowns.delete(id);
+    this.hornCooldowns.delete(id);
   }
   motor(c: Character, input: Input) {
     const s = c.state,
@@ -285,6 +303,38 @@ export class Simulation {
       z: -Math.cos(s.yaw) * Math.cos(s.pitch),
     };
   }
+  /** Stable hand pose shared by physics and shot visuals for compact tools. */
+  heldPose(s: PlayerState, kind = propKind(s.held)) {
+    const eye = this.eye(s),
+      d = this.direction(s),
+      span = Math.max(0.001, Math.hypot(d.x, d.z)),
+      right = { x: -d.z / span, z: d.x / span },
+      forward = kind === "gun" ? 0.82 : kind === "bat" ? 0.76 : 0.72,
+      sideways = kind === "gun" ? 0.27 : kind === "bat" ? 0.34 : 0.29,
+      lowered = kind === "gun" ? 0.19 : kind === "bat" ? 0.27 : 0.16;
+    const cy = Math.cos(s.yaw / 2),
+      sy = Math.sin(s.yaw / 2),
+      cx = Math.cos(s.pitch / 2),
+      sx = Math.sin(-s.pitch / 2);
+    return {
+      position: {
+        x: eye.x + d.x * forward + right.x * sideways,
+        y: eye.y + d.y * forward - lowered,
+        z: eye.z + d.z * forward + right.z * sideways,
+      },
+      rotation: { x: cy * sx, y: sy * cx, z: -sy * sx, w: cy * cx },
+    };
+  }
+  /** World-space tip of the gun barrel, matching its visual model. */
+  muzzle(s: PlayerState) {
+    const pose = this.heldPose(s, "gun"),
+      d = this.direction(s);
+    return {
+      x: pose.position.x + d.x * 0.64,
+      y: pose.position.y + d.y * 0.64,
+      z: pose.position.z + d.z * 0.64,
+    };
+  }
   /** Closest collider along the look ray, players included. Nothing is mutated. */
   private look(s: PlayerState, max: number, skipPlayers: boolean) {
     const c = this.players.get(s.id);
@@ -370,6 +420,7 @@ export class Simulation {
     this.cooldowns.set(playerId, this.frame + WEAPON.cooldown);
     const s = c.state,
       eye = this.eye(s),
+      muzzle = this.muzzle(s),
       d = this.direction(s);
     const targets = new Map(
       [...this.players].map(([id, p]) => [p.collider.handle, id]),
@@ -385,17 +436,69 @@ export class Simulation {
     }
     s.vx -= d.x * WEAPON.recoil;
     s.vz -= d.z * WEAPON.recoil;
+    const end = {
+        x: eye.x + d.x * (hit ? hit.timeOfImpact : WEAPON.range),
+        y: eye.y + d.y * (hit ? hit.timeOfImpact : WEAPON.range),
+        z: eye.z + d.z * (hit ? hit.timeOfImpact : WEAPON.range),
+      },
+      distance = Math.hypot(end.x - muzzle.x, end.y - muzzle.y, end.z - muzzle.z);
     return {
       id: playerId,
-      x: eye.x,
-      y: eye.y,
-      z: eye.z,
-      dx: d.x,
-      dy: d.y,
-      dz: d.z,
-      distance: hit ? hit.timeOfImpact : WEAPON.range,
+      object: s.held,
+      x: muzzle.x,
+      y: muzzle.y,
+      z: muzzle.z,
+      dx: (end.x - muzzle.x) / distance,
+      dy: (end.y - muzzle.y) / distance,
+      dz: (end.z - muzzle.z) / distance,
+      distance,
       hit: victim,
     };
+  }
+  /** Swing the held bat through a forgiving capsule-sized lane in front. */
+  swing(playerId: number): Swing | null {
+    const c = this.players.get(playerId);
+    if (!c || propKind(c.state.held) !== "bat") return null;
+    if (this.frame < (this.meleeCooldowns.get(playerId) ?? 0)) return null;
+    this.meleeCooldowns.set(playerId, this.frame + MELEE.cooldown);
+    const s = c.state,
+      d = this.direction(s),
+      targets = new Map(
+        [...this.players].map(([id, p]) => [p.collider.handle, id]),
+      ),
+      held = this.props.get(s.held)!;
+    const hit = this.world.castShape(
+      this.eye(s),
+      { x: 0, y: 0, z: 0, w: 1 },
+      d,
+      new RAPIER.Ball(MELEE.radius),
+      0.01,
+      MELEE.range,
+      true,
+      undefined,
+      undefined,
+      c.collider,
+      c.body,
+      (col: RAPIER.Collider) => col.handle !== held.collider(0).handle,
+    );
+    const victim = hit ? (targets.get(hit.collider.handle) ?? 0) : 0,
+      struck = this.players.get(victim);
+    if (struck) {
+      struck.state.vx += d.x * MELEE.knock;
+      struck.state.vz += d.z * MELEE.knock;
+      struck.state.vy = Math.max(struck.state.vy, 0) + MELEE.lift;
+      struck.state.stagger = MELEE.stagger;
+    }
+    s.vx -= d.x * MELEE.recoil;
+    s.vz -= d.z * MELEE.recoil;
+    return { id: playerId, object: s.held, hit: victim };
+  }
+  honk(playerId: number) {
+    const c = this.players.get(playerId);
+    if (!c || propKind(c.state.held) !== "horn") return false;
+    if (this.frame < (this.hornCooldowns.get(playerId) ?? 0)) return false;
+    this.hornCooldowns.set(playerId, this.frame + HORN.cooldown);
+    return true;
   }
   pickup(playerId: number, objectId: number) {
     const c = this.players.get(playerId),
@@ -478,9 +581,11 @@ export class Simulation {
     this.moveDoors();
     for (const c of this.players.values()) {
       if (!c.state.held) continue;
-      // A gun is carried at the shoulder, off to the right; a crate rides out
-      // in front at arm's length.
-      const gun = propKind(c.state.held) === "gun",
+      // Compact tools stay locked to one stable hand pose. Bulky throwable
+      // props still pull back when a wall would clip them.
+      const kind = propKind(c.state.held),
+        tool = kind === "gun" || kind === "bat" || kind === "horn",
+        gun = kind === "gun",
         reach = gun ? 1.5 : 2.25,
         lowered = gun ? 0.18 : 0,
         sideways = gun ? 0.28 : 0;
@@ -492,6 +597,12 @@ export class Simulation {
           y: eye.y - d.y * 0.65,
           z: eye.z - d.z * 0.65,
         };
+      if (tool) {
+        const pose = this.heldPose(c.state, kind);
+        body.setNextKinematicTranslation(pose.position);
+        body.setNextKinematicRotation(pose.rotation);
+        continue;
+      }
       const hit = this.world.castShape(
         origin,
         { x: 0, y: 0, z: 0, w: 1 },

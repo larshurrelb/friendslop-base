@@ -85,22 +85,28 @@ therefore does not require receiving an earlier delta. Clients retain a small
 baseline history. A missing baseline requests resynchronization by sending 0
 in the next input batch. Full player arrays carry player removals; the fixed
 sample prop set does not currently spawn/despawn during a room. A prop's kind —
-crate, ball or gun — is static, read from `PROPS` by ID on both sides, and never
+crate, ball, gun, bat or horn — is static, read from `PROPS` by ID on both sides, and never
 travels on the wire.
 
 ### Actions, shots and doors (JSON)
 
-`{type:"action", request, action}` covers `pickup`, `drop`, `throw`, `shoot` and
-`door`, deduplicated by `request`. The reply is
+`{type:"action", request, action}` covers `pickup`, `drop`, `throw`, `shoot`,
+`swing`, `honk` and `door`, deduplicated by `request`. The reply is
 `{type:"action-result", request, action, accepted}`.
 
 `shoot` requires the held prop to be a gun and a cooldown of `WEAPON.cooldown`
 ticks; the server casts the ray from the shooter's eye, and a hit adds velocity
 and stagger to the victim. Nobody has health and nobody is removed. Every
-accepted shot is broadcast as `{type:"shot", id, x, y, z, dx, dy, dz, distance,
-hit}` — the origin, direction and length the clients draw the tracer from, with
+accepted shot is broadcast as `{type:"shot", id, object, x, y, z, dx, dy, dz,
+distance, hit}` — the muzzle origin, direction and length the clients draw the tracer from, with
 `hit` the player ID struck or 0. A shooter draws its own tracer on the trigger
 press and ignores the echo of its own shot.
+
+`swing` requires a held bat and uses an authority-owned swept sphere over the
+short `MELEE.range`; a struck player gets the same kind of shove and stagger as
+a gun hit. `{type:"swing", id, object, hit}` drives the visible swing and impact
+effects. `honk` requires a held horn and is authority-rate-limited by
+`HORN.cooldown`; accepted uses are broadcast as spatial `sound` events.
 
 `door` toggles one hand-worked leaf and is accepted only when that leaf is under
 the player's crosshair. Automatic leaves open for anyone within `AUTO_RANGE`,

@@ -16,6 +16,10 @@ released under the repository [MIT License](../LICENSE).
   into the client JavaScript. Their complete MIT, Apache-2.0, ISC, and BSD
   license texts are consolidated in
   `public/licenses/client-dependencies-LICENSES.txt`.
+- **`audio/horn.ogg`** is a 1.6-second excerpt of *Hunting horn tone* by
+  Alon-De-Lon, sourced from Wikimedia Commons and dedicated to the public domain
+  under CC0 1.0. The excerpt was converted to mono, normalized, and faded out.
+  Source: https://commons.wikimedia.org/wiki/File:Hunting_horn_tone.ogg
 
 Keep those license and notice files with any redistributed client build.
 

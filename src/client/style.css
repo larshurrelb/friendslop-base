@@ -407,36 +407,9 @@ label {
 .net-mode[data-mode="p2p"] .dot {
   background: #b9973f;
 }
-.scene-caption {
-  position: fixed;
-  right: 45px;
-  bottom: 100px;
-  border-left: 2px solid #69805c;
-  padding: 4px 0 4px 13px;
-  color: #304830;
-  text-shadow: 0 1px 10px #ecf0d4;
-}
-.scene-caption b {
-  display: block;
-  font-family: "Space Grotesk";
-  font-size: 15px;
-  font-weight: 500;
-}
-.scene-caption small {
-  font-size: 10px;
-  letter-spacing: 1px;
-  display: block;
-  margin-top: 5px;
-}
-.scene-caption .drag-hint {
-  color: #6b7d63;
-  letter-spacing: 0.4px;
-  margin-top: 3px;
-}
 /* The backdrop is a camera you can turn, so say so with the cursor as well. */
 body:not(.playing) #world canvas,
-body:not(.playing) .lobby,
-body:not(.playing) .scene-caption {
+body:not(.playing) .lobby {
   cursor: grab;
 }
 body:not(.playing) .entry-card {
@@ -898,7 +871,6 @@ body.turning * {
 @media (prefers-reduced-motion: no-preference) {
   body:not(.ready) .topbar,
   body:not(.ready) .lobby,
-  body:not(.ready) .scene-caption,
   body:not(.ready) .footer {
     opacity: 0;
   }
@@ -912,8 +884,7 @@ body.turning * {
   .ready .github-button,
   .ready .entry-card,
   .ready .lobby-foot,
-  .ready .mobile-notice,
-  .ready .scene-caption {
+  .ready .mobile-notice {
     animation: rise 0.75s cubic-bezier(0.22, 0.68, 0.24, 1) backwards;
   }
   .ready h1 .line > span {
@@ -949,9 +920,6 @@ body.turning * {
   .ready .mobile-notice {
     animation-delay: 0.8s;
   }
-  .ready .scene-caption {
-    animation-delay: 0.88s;
-  }
   .ready .footer > * {
     animation-delay: 0.96s;
   }
@@ -970,9 +938,6 @@ body.turning * {
     right: 25px;
   }
   .brand small {
-    display: none;
-  }
-  .scene-caption {
     display: none;
   }
   .room-bar {

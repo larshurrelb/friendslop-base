@@ -7,7 +7,7 @@ export type Box = {
   /** Near-side geometry, hidden while the lobby camera looks into the world. */
   hide?: boolean;
 };
-export type PropKind = "crate" | "ball" | "gun";
+export type PropKind = "crate" | "ball" | "gun" | "bat" | "horn";
 export type Prop = { p: [number, number, number]; kind: PropKind };
 /** A sliding leaf. Closed at `p`, open at `p + slide`; ids are their own namespace. */
 export type Door = {
@@ -181,6 +181,8 @@ export const PROPS: Prop[] = [
   { p: [21, 0.9, 5.5], kind: "crate" },
   { p: [-9.5, 0.5, -22], kind: "crate" },
   { p: [-6, 1, -13.4], kind: "gun" },
+  { p: [18.8, 1.2, -6], kind: "bat" },
+  { p: [-8.8, 1.25, 7.8], kind: "horn" },
 ];
 export const PROP_STARTS = PROPS.map((p) => p.p);
 export const propKind = (id: number): PropKind | undefined =>
@@ -221,6 +223,18 @@ export const WEAPON = {
   /** How much of your own steering survives while staggered. */
   control: 0.12,
 };
+/** Short-range, authority-owned shove from a baseball bat. */
+export const MELEE = {
+  range: 2.35,
+  radius: 0.48,
+  cooldown: 34,
+  knock: 11.5,
+  lift: 4.2,
+  recoil: 0.35,
+  stagger: 30,
+};
+/** A horn is harmless, but the authority still rate-limits the noise. */
+export const HORN = { cooldown: 42 };
 export const VOICE = {
   refDistance: 2,
   maxDistance: 22,

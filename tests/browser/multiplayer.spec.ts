@@ -201,6 +201,24 @@ test("Chrome pointer lock, Blender character, pickup, throw and crouch", async (
     .poll(() => page.evaluate(() => !!document.pointerLockElement))
     .toBe(true);
   await expect(page.locator("#pause")).toBeHidden();
+  await page.keyboard.press("Tab");
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const d = (window as any).__friendslop;
+        return d.cameraMode === "third" && d.scene.avatars.has(d.state.id);
+      }),
+    )
+    .toBe(true);
+  await page.keyboard.press("Tab");
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const d = (window as any).__friendslop;
+        return d.cameraMode === "first" && !d.scene.avatars.has(d.state.id);
+      }),
+    )
+    .toBe(true);
   await page.screenshot({ path: "test-results/character.png" });
   await page.evaluate(() => {
     (window as any).__friendslop.look(0, 0.55);

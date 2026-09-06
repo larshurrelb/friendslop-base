@@ -261,9 +261,39 @@ test("the server decides every shot, and the whole room hears it", async () => {
   a.ws.send(JSON.stringify({ type: "action", request: 3, action: "shoot" }));
   const shot = await announced;
   assert.equal(shot.id, a.welcome.id);
+  assert.equal(shot.object, gun, "the shot names its rendered muzzle");
   assert.equal(shot.hit, b.welcome.id, "the ray, not the client, picks a target");
   assert.equal(victim.state.stagger > 0, true);
   assert.equal(room.members.has(b.welcome.id), true, "and nobody is removed");
+
+  const bat = PROPS.findIndex((p) => p.kind === "bat") + 1;
+  shooter.state.held = bat;
+  room.sim.owners.set(gun, 0);
+  room.sim.props.get(gun)!.setTranslation({ x: -20, y: 1, z: -20 }, true);
+  room.sim.props
+    .get(gun)!
+    .setNextKinematicTranslation({ x: -20, y: 1, z: -20 });
+  room.sim.owners.set(bat, a.welcome.id);
+  room.sim.restore(victim, {
+    ...victim.state,
+    x: shooter.state.x + 0.3,
+    y: 0.87,
+    z: shooter.state.z - 1.8,
+  });
+  const swung = wait(b.ws, (m) => m.type === "swing");
+  a.ws.send(JSON.stringify({ type: "action", request: 4, action: "swing" }));
+  assert.equal((await swung).object, bat, "the room sees the authoritative swing");
+
+  const horn = PROPS.findIndex((p) => p.kind === "horn") + 1;
+  shooter.state.held = horn;
+  room.sim.owners.set(bat, 0);
+  room.sim.owners.set(horn, a.welcome.id);
+  const honked = wait(
+    b.ws,
+    (m) => m.type === "sound" && m.kind === "honk",
+  );
+  a.ws.send(JSON.stringify({ type: "action", request: 5, action: "honk" }));
+  assert.equal((await honked).object, horn);
 });
 test("doors are opened by the authority: on request, or by walking up", async () => {
   const a = await member(),

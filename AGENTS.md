@@ -9,9 +9,9 @@ changes.
 
 A browser multiplayer starter: a shared building for 2–8 players — common room,
 hall, mezzanine, workshop, back room and an outdoor yard behind sliding doors —
-with physical props you can pick up and throw, bouncy balls, guns that shove
-whoever they hit, and proximity voice that sounds like it comes from the other
-player's mouth. Nobody has health and nobody dies. No objectives, scores, roles
+with physical props you can pick up and throw, bouncy balls, guns and bats that
+shove whoever they hit, a pickup horn, and proximity voice that sounds like it
+comes from the other player's mouth. Nobody has health and nobody dies. No objectives, scores, roles
 or accounts — the game built on top of it decides those.
 
 **One repository, at most one process, one public port.** Deployed on Node,
@@ -37,7 +37,7 @@ index.html                    Vite entry; loads src/client/main.ts
 src/
   shared/                     Runs on BOTH client and server. No DOM, no three, no Node APIs.
     level.ts                  LEVEL boxes (render + collision), DOORS (sliding leaves),
-                              SPAWNS, PROPS (crate/ball/gun) + propKind, PALETTE,
+                              SPAWNS, PROPS (crate/ball/gun/bat/horn) + propKind, PALETTE,
                               STEP = 1/60, MAX_PLAYERS = 8, WEAPON tuning,
                               DOOR_TRAVEL/AUTO_RANGE, VOICE distance model
     acoustics.ts              REVERB_REGIONS (room/hall boxes, IR paths, wet levels), regionWeights()
@@ -45,7 +45,7 @@ src/
                               frames; PlayerState/PropState/Input types; VERSION = 1
     simulation.ts             Rapier world + character motor. THE authority boundary.
                               addPlayer/removePlayer, motor(), step(), restore(), target(),
-                              pickup(), release(), shoot(), reach(), doorTarget(),
+                              pickup(), release(), shoot(), swing(), honk(), reach(), doorTarget(),
                               toggleDoor(), setDoor(), doorStates(), syncDoors(),
                               propStates(), syncProps(), eye(), dispose()
   net/                        Isomorphic transport layer. No three, no DOM, no node:*.
@@ -141,7 +141,7 @@ direction — hits exactly that object and nobody owns it. Aim matters: floor
 props need pitch downward.
 
 **Props have kinds.** `PROPS` in `level.ts` pairs each start position with
-`crate`, `ball` or `gun`; the id is still the index + 1. The kind picks the
+`crate`, `ball`, `gun`, `bat` or `horn`; the id is still the index + 1. The kind picks the
 collider (a ball is a bouncy sphere with `CoefficientCombineRule.Max`), the mesh,
 and how it is carried. Kinds are static and never travel on the wire.
 

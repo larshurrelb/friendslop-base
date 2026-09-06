@@ -25,6 +25,7 @@ const EFFECTS: Record<string, EffectSpec> = {
   jump: { volume: 0.13, duration: 0.2, from: 210, to: 460, noise: 0.3, cutoff: 1800 },
   pickup: { volume: 0.16, duration: 0.18, from: 420, to: 680, noise: 0.3, cutoff: 650 },
   shoot: { volume: 0.3, duration: 0.17, from: 820, to: 70, noise: 1.1, cutoff: 3200, type: "triangle" },
+  swing: { volume: 0.18, duration: 0.16, from: 340, to: 95, noise: 0.8, cutoff: 1400 },
   hit: { volume: 0.3, duration: 0.26, from: 220, to: 38, noise: 0.7, cutoff: 700 },
   bounce: { volume: 0.17, duration: 0.13, from: 470, to: 140, noise: 0.22, cutoff: 1300 },
   door: { volume: 0.12, duration: 0.55, from: 120, to: 80, noise: 0.45, cutoff: 420 },
@@ -37,6 +38,7 @@ export class SpatialAudio {
   emitters = new Set<Emitter>();
   zone = 0;
   private noise: AudioBuffer;
+  private horn?: AudioBuffer;
   constructor() {
     this.context = new AudioContext({
       latencyHint: "interactive",
@@ -68,15 +70,19 @@ export class SpatialAudio {
     }
   }
   async init() {
-    await Promise.all(
-      REVERB_REGIONS.map(async (region) => {
+    await Promise.all([
+      ...REVERB_REGIONS.map(async (region) => {
         const response = await fetch(
           new URL(region.impulse, document.baseURI),
         );
         this.convolvers.get(region.id)!.buffer =
           await this.context.decodeAudioData(await response.arrayBuffer());
       }),
-    );
+      fetch(new URL("audio/horn.ogg", document.baseURI))
+        .then((response) => response.arrayBuffer())
+        .then((data) => this.context.decodeAudioData(data))
+        .then((buffer) => (this.horn = buffer)),
+    ]);
   }
   emitter(): Emitter {
     const c = this.context,
@@ -183,7 +189,22 @@ export class SpatialAudio {
     if (this.context.state !== "running") return;
     const e = this.emitter();
     e.position = { ...position };
-    const c = this.context,
+    const c = this.context;
+    if (kind === "honk" && this.horn) {
+      const source = c.createBufferSource(),
+        gain = c.createGain();
+      source.buffer = this.horn;
+      gain.gain.value = 0.72;
+      source.connect(gain).connect(e.input);
+      source.start();
+      source.onended = () => {
+        source.disconnect();
+        gain.disconnect();
+        setTimeout(() => e.dispose(), 2000);
+      };
+      return;
+    }
+    const
       o = c.createOscillator(),
       g = c.createGain();
     const { volume, duration, from, to, noise, cutoff, type } =

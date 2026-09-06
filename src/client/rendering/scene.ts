@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { GLTFLoader, type GLTF } from "three/addons/loaders/GLTFLoader.js";
 import { clone } from "three/addons/utils/SkeletonUtils.js";
-import { CHARACTER_PALETTE, DOORS, LEVEL, PALETTE, PROPS } from "../../shared/level";
+import { CHARACTER_PALETTE, DOORS, LEVEL, PALETTE, PROPS, type PropKind, type Vec3 } from "../../shared/level";
 import type { DoorState } from "../../shared/simulation";
 import type { PlayerState, PropState } from "../../shared/protocol";
 type Avatar = {
@@ -19,20 +19,27 @@ type Avatar = {
   speaking: boolean;
   mouth: number;
 };
+type PreviewPerformer = {
+  avatar: Avatar;
+  home: THREE.Vector3;
+  phase: number;
+};
 /** A bone the runtime aims by hand, plus the pose the mixer last gave it. */
 type Driven = { bone: THREE.Object3D; posed: THREE.Quaternion };
 /**
  * The lobby camera orbits this point. OVERVIEW is the resting framing the landing page was
  * composed around; the drift, the visitor's drag and the arrival flight all ride on top of it.
  */
-const FOCUS = new THREE.Vector3(2, 0, -3);
-const OVERVIEW = { yaw: 0.632, pitch: 0.514, dist: 42.7 };
+const FOCUS = new THREE.Vector3(7.1, 0.8, -0.8);
+const OVERVIEW = { yaw: 0.632, pitch: 0.46, dist: 14 };
 /** How far a visitor may swing the camera before it stops giving. */
-const SWING = { yaw: 0.62, pitch: [0.3, 0.95], dist: [24, 47] };
+const SWING = { yaw: 0.62, pitch: [0.28, 0.82], dist: [11, 24] };
 const ARRIVAL = 2.4;
 const MOUTH_OPEN = 0.5;
 const HEAD_TILT = 0.55;
 const HOLD_LIFT = -1.1;
+const THIRD_PERSON_DISTANCE = 4.2;
+const THIRD_PERSON_PADDING = 0.18;
 const HINGE_AXIS = new THREE.Vector3(1, 0, 0);
 const spin = new THREE.Quaternion();
 function driven(character: THREE.Object3D, name: string): Driven | undefined {
@@ -82,6 +89,8 @@ export class GameScene {
   doors = new Map<number, THREE.Group>();
   /** Muzzle flashes, tracers and impact sparks; they fade out and delete themselves. */
   effects: { mesh: THREE.Mesh; life: number; ttl: number; shrink: boolean }[] = [];
+  private propBases = new Map<number, { position: THREE.Vector3; rotation: THREE.Quaternion }>();
+  private propUses = new Map<number, { kind: PropKind; started: number }>();
   avatars = new Map<number, Avatar>();
   asset?: GLTF;
   playing = false;
@@ -91,6 +100,7 @@ export class GameScene {
   clock = 0;
   loaded: Promise<void>;
   preview: THREE.Group[] = [];
+  private previewCast: PreviewPerformer[] = [];
   /** True while a visitor is dragging the lobby camera; suspends the pointer parallax. */
   private dragging = false;
   /** Visitor-owned offsets from OVERVIEW, the spin left over from a release, and the drift. */
@@ -100,6 +110,12 @@ export class GameScene {
   private drift = 0;
   private arrival = 0;
   private calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  private cameraRay = new THREE.Ray();
+  private cameraBox = new THREE.Box3();
+  private cameraHit = new THREE.Vector3();
+  private cameraSize = new THREE.Vector3();
+  private cameraFocus = new THREE.Vector3();
+  private cameraBoom = new THREE.Vector3();
   constructor(container: HTMLElement) {
     this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
     this.renderer.shadowMap.enabled = true;
@@ -258,17 +274,20 @@ export class GameScene {
       .loadAsync(new URL("models/common-worker.glb", document.baseURI).href)
       .then((asset) => {
         this.asset = asset;
-        for (const [i, p] of [
-          [-2, 0, -1],
-          [1, 0, -3],
-          [8, 0, 1],
-        ].entries()) {
-          const a = this.avatar(60000 + i, "", i);
-          a.root.position.set(...(p as [number, number, number]));
-          a.root.rotation.y = i === 1 ? 1.6 : -0.5;
+        const cast = [
+          { p: [5.8, 0, -0.1], color: 2, phase: 2.75 },
+          { p: [7.1, 0, -2.15], color: 1, phase: 4.85 },
+          { p: [8.5, 0, -0.1], color: 3, phase: 0.65 },
+        ] as const;
+        for (const [i, performer] of cast.entries()) {
+          const a = this.avatar(60000 + i, "", performer.color);
+          const home = new THREE.Vector3(...performer.p);
+          a.root.position.copy(home);
           a.label.style.display = "none";
           this.preview.push(a.root);
+          this.previewCast.push({ avatar: a, home, phase: performer.phase });
         }
+        this.animatePreview(0);
       });
     addEventListener("resize", () => this.resize());
     this.resize();
@@ -583,6 +602,53 @@ export class GameScene {
       root.add(barrel, grip, sight);
       return root;
     }
+    if (kind === "bat") {
+      // The handle is at +z and the barrel reaches forward along -z.
+      const barrel = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.1, 0.055, 0.9, 14),
+        new THREE.MeshStandardMaterial({
+          color: PALETTE[i % 8],
+          roughness: 0.72,
+        }),
+      );
+      barrel.rotation.x = Math.PI / 2;
+      barrel.position.z = -0.18;
+      barrel.castShadow = true;
+      root.add(barrel);
+      const grip = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.043, 0.043, 0.34, 12),
+        new THREE.MeshStandardMaterial({ color: "#3b2b22", roughness: 0.9 }),
+      );
+      grip.rotation.x = Math.PI / 2;
+      grip.position.z = 0.43;
+      root.add(grip);
+      return root;
+    }
+    if (kind === "horn") {
+      // A toy brass squeeze horn. In the held pose -z points away from the
+      // player, so the wide bell opens along -z and the bulb sits at the rear.
+      const bell = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.2, 0.065, 0.5, 18, 1, true),
+        new THREE.MeshStandardMaterial({
+          color: "#d8a928",
+          roughness: 0.3,
+          metalness: 0.65,
+          side: THREE.DoubleSide,
+        }),
+      );
+      bell.rotation.x = -Math.PI / 2;
+      bell.position.z = 0;
+      bell.castShadow = true;
+      root.add(bell);
+      const bulb = new THREE.Mesh(
+        new THREE.SphereGeometry(0.15, 16, 12),
+        new THREE.MeshStandardMaterial({ color: "#d84b43", roughness: 0.85 }),
+      );
+      bulb.scale.z = 1.25;
+      bulb.position.z = 0.38;
+      root.add(bulb);
+      return root;
+    }
     const mat = new THREE.MeshStandardMaterial({
       color: PALETTE[i % 8],
       roughness: 0.8,
@@ -647,19 +713,15 @@ export class GameScene {
     dz: number;
     distance: number;
     hit: number;
-  }) {
-    const eye = new THREE.Vector3(shot.x, shot.y, shot.z),
-      direction = new THREE.Vector3(shot.dx, shot.dy, shot.dz).normalize();
-    // Start at the muzzle rather than the eye, using the same offsets the
-    // simulation carries a gun at, so the flash is not inside your own face.
-    const span = Math.max(0.001, Math.hypot(direction.x, direction.z)),
-      right = new THREE.Vector3(-direction.z / span, 0, direction.x / span);
-    const origin = eye
-      .clone()
-      .addScaledVector(direction, 0.55)
-      .addScaledVector(right, 0.28)
-      .setY(eye.y - 0.18 + direction.y * 0.55);
-    const length = Math.max(0.5, shot.distance - 0.55);
+  }, liveMuzzle?: Vec3) {
+    const authorityOrigin = new THREE.Vector3(shot.x, shot.y, shot.z),
+      authorityDirection = new THREE.Vector3(shot.dx, shot.dy, shot.dz).normalize(),
+      end = authorityOrigin.clone().addScaledVector(authorityDirection, shot.distance),
+      origin = liveMuzzle
+        ? new THREE.Vector3(liveMuzzle.x, liveMuzzle.y, liveMuzzle.z)
+        : authorityOrigin,
+      direction = end.clone().sub(origin).normalize(),
+      length = Math.max(0.5, end.distanceTo(origin));
     const geometry = new THREE.CylinderGeometry(0.013, 0.005, length, 6, 1, true);
     geometry.translate(0, -length / 2, 0);
     const beam = new THREE.Mesh(
@@ -679,9 +741,20 @@ export class GameScene {
     this.spark(
       shot.hit ? "#ffc4a8" : "#e9e3cf",
       shot.hit ? 0.28 : 0.13,
-      eye.clone().addScaledVector(direction, shot.distance),
+      end,
       shot.hit ? 0.24 : 0.16,
     );
+  }
+  /** Exact rendered barrel tip, after interpolation, for a tracer with no side gap. */
+  muzzle(id: number): Vec3 | undefined {
+    const gun = this.props.get(id);
+    if (!gun || PROPS[id - 1]?.kind !== "gun") return;
+    gun.updateMatrixWorld(true);
+    const p = gun.localToWorld(new THREE.Vector3(0, 0.02, -0.64));
+    return { x: p.x, y: p.y, z: p.z };
+  }
+  useProp(id: number, kind: PropKind) {
+    this.propUses.set(id, { kind, started: this.clock });
   }
   avatar(id: number, name: string, color = id - 1) {
     if (this.avatars.has(id)) {
@@ -764,6 +837,30 @@ export class GameScene {
     this.playing = playing;
     for (const m of this.front) m.visible = playing;
     for (const p of this.preview) p.visible = !playing;
+  }
+  private play(a: Avatar, desired: string, speed = 1) {
+    const action = [...a.actions.entries()].find(([name]) =>
+      name.includes(desired),
+    );
+    if (action && action[0] !== a.current) {
+      a.actions.get(a.current)?.fadeOut(0.15);
+      action[1].reset().fadeIn(0.15).play();
+      a.current = action[0];
+    }
+    if (action) action[1].timeScale = speed;
+  }
+  /** Keep the lobby trio turned toward one another while their idle chatter plays. */
+  private animatePreview(dt: number) {
+    const center = FOCUS.clone().setY(0);
+    for (const performer of this.previewCast) {
+      const { avatar: a, home, phase } = performer;
+      a.root.position.copy(home);
+      const towardFriends = center.clone().sub(a.root.position);
+      a.root.rotation.y = Math.atan2(towardFriends.x, towardFriends.z);
+      this.play(a, "Idle");
+      repose(a, dt);
+      hinge(a.head, Math.sin(this.clock * 0.9 + phase) * 0.08);
+    }
   }
   /** A visitor took hold of the lobby camera. */
   grab() {
@@ -861,8 +958,15 @@ export class GameScene {
     this.camera.lookAt(FOCUS);
     for (const m of this.front) m.visible = false;
   }
-  updatePlayer(s: PlayerState, name: string, dt: number, color = s.id - 1) {
+  updatePlayer(
+    s: PlayerState,
+    name: string,
+    dt: number,
+    color = s.id - 1,
+    showLabel = true,
+  ) {
     const a = this.avatar(s.id, name, color);
+    a.label.hidden = !showLabel;
     a.root.position.set(s.x, s.y - (s.flags & 2 ? 0.5 : 0.85), s.z);
     a.root.rotation.y = s.yaw + Math.PI;
     const speed = Math.hypot(s.vx, s.vz),
@@ -875,16 +979,7 @@ export class GameScene {
               ? "Sprint"
               : "Walk"
             : "Idle";
-    const action = [...a.actions.entries()].find(([name]) =>
-      name.includes(desired),
-    );
-    if (action && action[0] !== a.current) {
-      a.actions.get(a.current)?.fadeOut(0.15);
-      action[1].reset().fadeIn(0.15).play();
-      a.current = action[0];
-    }
-    if (action)
-      action[1].timeScale = desired === "Crouch" && speed < 0.15 ? 0 : 1;
+    this.play(a, desired, desired === "Crouch" && speed < 0.15 ? 0 : 1);
     repose(a, dt);
     // Aim the runtime-driven bones on top of the pose the mixer just wrote.
     hinge(a.head, Math.max(-1.2, Math.min(1.2, s.pitch)) * HEAD_TILT);
@@ -893,6 +988,45 @@ export class GameScene {
       hinge(a.armR, HOLD_LIFT);
     }
     return a;
+  }
+  /** Put the camera on a collision-aware boom behind a player. */
+  thirdPersonCamera(
+    target: { x: number; y: number; z: number },
+    yaw: number,
+    pitch: number,
+  ) {
+    const focus = this.cameraFocus.set(target.x, target.y + 0.35, target.z);
+    const boom = this.cameraBoom
+      .set(
+        Math.sin(yaw) * Math.cos(pitch),
+        Math.sin(pitch),
+        Math.cos(yaw) * Math.cos(pitch),
+      )
+      .normalize();
+    this.cameraRay.set(focus, boom);
+    let distance = THIRD_PERSON_DISTANCE;
+    const test = (center: readonly number[], size: readonly number[]) => {
+      this.cameraBox
+        .setFromCenterAndSize(
+          this.cameraHit.set(center[0], center[1], center[2]),
+          this.cameraSize.set(size[0], size[1], size[2]),
+        )
+        .expandByScalar(THIRD_PERSON_PADDING);
+      if (this.cameraBox.containsPoint(focus)) return;
+      const hit = this.cameraRay.intersectBox(this.cameraBox, this.cameraHit);
+      if (hit)
+        distance = Math.min(
+          distance,
+          Math.max(0.4, hit.distanceTo(focus) - 0.08),
+        );
+    };
+    for (const box of LEVEL) test(box.p, box.s);
+    for (const door of DOORS) {
+      const leaf = this.doors.get(door.id);
+      if (leaf) test(leaf.position.toArray(), door.s);
+    }
+    this.camera.position.copy(focus).addScaledVector(boom, distance);
+    this.camera.lookAt(focus.x, focus.y - 0.12, focus.z);
   }
   removePlayer(id: number) {
     const a = this.avatars.get(id);
@@ -919,6 +1053,10 @@ export class GameScene {
       if (!m) continue;
       m.position.set(p.x, p.y, p.z);
       m.quaternion.set(p.qx, p.qy, p.qz, p.qw).normalize();
+      this.propBases.set(p.id, {
+        position: m.position.clone(),
+        rotation: m.quaternion.clone(),
+      });
     }
   }
   setHighlight(id: number) {
@@ -952,8 +1090,26 @@ export class GameScene {
       (e.mesh.material as THREE.MeshBasicMaterial).opacity = left;
       if (e.shrink) e.mesh.scale.setScalar(0.4 + left * 0.8);
     }
-    if (!this.playing)
-      for (const [id, a] of this.avatars) if (id >= 60000) repose(a, dt);
+    if (!this.playing) this.animatePreview(dt);
+    for (const [id, use] of this.propUses) {
+      const prop = this.props.get(id),
+        base = this.propBases.get(id),
+        age = this.clock - use.started;
+      if (!prop || !base || age > 0.46) {
+        this.propUses.delete(id);
+        continue;
+      }
+      prop.position.copy(base.position);
+      prop.quaternion.copy(base.rotation);
+      if (use.kind === "bat") {
+        const swing = Math.sin(Math.min(1, age / 0.34) * Math.PI) * 1.2;
+        prop.rotateY(-swing);
+        prop.rotateX(swing * 0.28);
+      } else if (use.kind === "horn") {
+        const squeeze = 1 - Math.sin(Math.min(1, age / 0.25) * Math.PI) * 0.08;
+        prop.scale.set(1, 1, squeeze);
+      }
+    }
     for (const [id, a] of this.avatars) {
       // Lobby stand-ins natter to themselves; live players follow their own voice level,
       // falling back to babble for speakers this client cannot meter.
@@ -977,6 +1133,7 @@ export class GameScene {
         .project(this.camera);
       const visible =
         this.playing &&
+        !a.label.hidden &&
         p.z < 1 &&
         p.z > -1 &&
         Math.abs(p.x) < 1 &&
