@@ -98,28 +98,40 @@ for sign,label in [(1,'L'),(-1,'R')]:
  ball('Toe2.'+label,(sign*.13,-.185,.06),(.068,.095,.07),cloth,'foot'+label,segments=14,rings=8)
  ball('Toe3.'+label,(sign*.185,-.17,.06),(.062,.085,.07),cloth,'foot'+label,segments=14,rings=8)
 # Explicit actions exported as glTF animation clips. The head and jaw are left unkeyed
-# so the runtime can aim them from look-pitch and voice loudness.
+# so the runtime can aim them from look-pitch and voice loudness. Locomotion uses nine
+# poses per loop: the extra passing/up poses, bent swing knee, ankle roll, body rise and
+# torso counter-motion keep the short puppet limbs from reading as rigid pendulums.
 DRIVEN={'head','jaw'}
 rig.animation_data_create()
 for name in ['Idle','Walk','Sprint','Crouch','Jump','Hold']:
  action=bpy.data.actions.new(name);rig.animation_data.action=action
- for frame in [1,7,13,19,25]:
+ for frame in [1,4,7,10,13,16,19,22,25]:
   phase=(frame-1)/24*2*math.pi
   for bone in rig.pose.bones:
    bone.rotation_mode='XYZ';bone.rotation_euler=(0,0,0);bone.location=(0,0,0)
   if name in ['Walk','Sprint','Crouch']:
-   amount=.65 if name=='Sprint' else .38 if name=='Walk' else .12
+   amount=.72 if name=='Sprint' else .46 if name=='Walk' else .16
+   bounce=.035 if name=='Sprint' else .022 if name=='Walk' else .012
+   rig.pose.bones['hips'].location.y=-math.cos(phase*2)*bounce
+   rig.pose.bones['hips'].location.x=math.cos(phase)*(.018 if name=='Sprint' else .012)
+   rig.pose.bones['hips'].rotation_euler.z=-math.sin(phase)*(.055 if name=='Sprint' else .035)
+   rig.pose.bones['spine'].rotation_euler.y=math.cos(phase)*(.035 if name=='Sprint' else .022)
+   rig.pose.bones['spine'].rotation_euler.z=math.sin(phase)*(.075 if name=='Sprint' else .045)
    for label,sign in [('L',1),('R',-1)]:
-    swing=math.sin(phase)*amount*sign
+    swing=math.cos(phase)*amount*sign
+    lift=max(0,-math.sin(phase)*sign)
+    push=max(0,math.sin(phase)*sign)
     rig.pose.bones['leg'+label].rotation_euler.x=swing
-    rig.pose.bones['shin'+label].rotation_euler.x=max(0,-math.sin(phase)*sign)*amount*.65
-    rig.pose.bones['arm'+label].rotation_euler.x=-swing*.7
-    rig.pose.bones['forearm'+label].rotation_euler.x=-.1
+    rig.pose.bones['shin'+label].rotation_euler.x=lift*amount*.9+.06
+    rig.pose.bones['foot'+label].rotation_euler.x=-swing*.32-lift*amount*.28+push*amount*.18
+    rig.pose.bones['arm'+label].rotation_euler.x=-swing*.72
+    rig.pose.bones['arm'+label].rotation_euler.z=-sign*.045
+    rig.pose.bones['forearm'+label].rotation_euler.x=-.16-lift*.20
    if name=='Crouch':
-    rig.pose.bones['hips'].location.y=-.327
+    rig.pose.bones['hips'].location.y=-.327-math.cos(phase*2)*bounce
     rig.pose.bones['spine'].rotation_euler.x=-.12
     for label,sign in [('L',1),('R',-1)]:
-     swing=math.sin(phase)*amount*sign
+     swing=math.cos(phase)*amount*sign
      rig.pose.bones['leg'+label].rotation_euler.x=-1.04+swing
      rig.pose.bones['shin'+label].rotation_euler.x=2.08-swing*.5
      rig.pose.bones['foot'+label].rotation_euler.x=1.04+swing*.5

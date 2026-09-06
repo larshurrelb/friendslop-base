@@ -979,7 +979,17 @@ export class GameScene {
               ? "Sprint"
               : "Walk"
             : "Idle";
-    this.play(a, desired, desired === "Crouch" && speed < 0.15 ? 0 : 1);
+    const animationSpeed =
+      desired === "Walk"
+        ? Math.max(0.45, Math.min(1.65, speed / 2.25))
+        : desired === "Sprint"
+          ? Math.max(1.35, Math.min(2, speed / 3))
+          : desired === "Crouch"
+            ? speed < 0.15
+              ? 0
+              : Math.max(0.45, Math.min(1.15, speed / 2))
+            : 1;
+    this.play(a, desired, animationSpeed);
     repose(a, dt);
     // Aim the runtime-driven bones on top of the pose the mixer just wrote.
     hinge(a.head, Math.max(-1.2, Math.min(1.2, s.pitch)) * HEAD_TILT);
