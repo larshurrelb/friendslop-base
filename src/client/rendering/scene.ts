@@ -41,6 +41,8 @@ const HOLD_LIFT = -1.1;
 const THIRD_PERSON_DISTANCE = 4.2;
 const THIRD_PERSON_PADDING = 0.18;
 const HINGE_AXIS = new THREE.Vector3(1, 0, 0);
+const LOBBY_SKY = new THREE.Color("#f0f4ee");
+const GAME_SKY = new THREE.Color("#b9d9e8");
 const spin = new THREE.Quaternion();
 function driven(character: THREE.Object3D, name: string): Driven | undefined {
   const bone = character.getObjectByName(name);
@@ -116,11 +118,13 @@ export class GameScene {
   private cameraSize = new THREE.Vector3();
   private cameraFocus = new THREE.Vector3();
   private cameraBoom = new THREE.Vector3();
+  /** Distant outdoor scenery is not part of the landing-page dollhouse composition. */
+  private horizon = new THREE.Group();
   constructor(container: HTMLElement) {
     this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    this.renderer.setClearColor("#f0f4ee");
+    this.renderer.setClearColor(LOBBY_SKY);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.2;
@@ -128,7 +132,7 @@ export class GameScene {
     this.labels = document.createElement("div");
     this.labels.className = "world-labels";
     container.append(this.labels);
-    this.scene.fog = new THREE.Fog("#f0f4ee", 25, 65);
+    this.scene.fog = new THREE.Fog(LOBBY_SKY, 25, 65);
     this.scene.add(new THREE.HemisphereLight("#f6eedb", "#728078", 2.3));
     const sun = new THREE.DirectionalLight("#fff1c8", 3.2);
     sun.position.set(-3, 19, -13);
@@ -164,6 +168,7 @@ export class GameScene {
       );
       lamp.position.set(x, 4.7, -1);
       this.scene.add(lamp);
+      this.roomLight([x, 4.45, -1], 28, 10);
       this.box([x, 5.1, -1], [0.035, 0.7, 0.035], "#3a4840");
     }
     for (const x of [-10, -5, 0]) {
@@ -231,6 +236,7 @@ export class GameScene {
     );
     this.workshop();
     this.yard();
+    this.outdoorHorizon();
     PROPS.forEach((prop, i) => {
       const root = this.makeProp(i);
       root.position.set(...prop.p);
@@ -304,6 +310,13 @@ export class GameScene {
     this.scene.add(m);
     return m;
   }
+  /** A practical fixture's warm pool of light. Kept shadowless to stay cheap on 8-player GPUs. */
+  roomLight(p: [number, number, number], intensity: number, distance: number) {
+    const light = new THREE.PointLight("#ffe4ad", intensity, distance, 2);
+    light.position.set(...p);
+    this.scene.add(light);
+    return light;
+  }
   sign(
     text: string,
     p: number[],
@@ -370,6 +383,7 @@ export class GameScene {
       [17, -8.6],
       [22, -8.6],
       [26.5, -1.6],
+      [27, -5.5],
     ]) {
       const lamp = new THREE.Mesh(
         new THREE.BoxGeometry(1.1, 0.16, 0.5),
@@ -381,6 +395,7 @@ export class GameScene {
       );
       lamp.position.set(x, 4.3, z);
       this.scene.add(lamp);
+      this.roomLight([x, 4.12, z], 25, 9);
     }
     // A pegboard of tool silhouettes over the bench.
     this.box([18, 2.6, -8.7], [6.4, 2.4, 0.1], "#7d8f86");
@@ -405,6 +420,7 @@ export class GameScene {
     );
     glow.position.set(12, 4.5, -6.5);
     this.scene.add(glow);
+    this.roomLight([12, 4.3, -6.5], 22, 8);
     this.box([12, 5.15, -6.5], [0.035, 1.1, 0.035], "#3a4840");
     this.sign(
       "05  /  THE MEZZANINE",
@@ -500,6 +516,17 @@ export class GameScene {
       tuft.rotation.y = i;
       this.scene.add(tuft);
     }
+    const shedLight = new THREE.Mesh(
+      new THREE.SphereGeometry(0.12, 10, 7),
+      new THREE.MeshStandardMaterial({
+        color: "#fff4d1",
+        emissive: "#efd58c",
+        emissiveIntensity: 1.1,
+      }),
+    );
+    shedLight.position.set(-9.5, 2.35, -22);
+    this.scene.add(shedLight);
+    this.roomLight([-9.5, 2.18, -22], 13, 5);
     this.box([-6, 0.95, -12.9], [9, 0.1, 0.12], "#6d5c44");
     this.sign(
       "04  /  THE YARD",
@@ -534,6 +561,54 @@ export class GameScene {
       "#efe7cf",
       "#6a5240",
     );
+  }
+  /** Pale sky dressing beyond the yard walls: low-poly hills and a few soft clouds. */
+  outdoorHorizon() {
+    const hillGeometry = new THREE.SphereGeometry(1, 18, 10);
+    const hillColors = ["#789873", "#86a47c", "#6f906d", "#93ad83"];
+    const hills = [
+      [-31, -3.5, -54, 24, 11, 11],
+      [-10, -4.5, -58, 20, 10, 9],
+      [10, -3.8, -56, 25, 12, 11],
+      [34, -4.2, -52, 24, 10, 10],
+    ] as const;
+    hills.forEach(([x, y, z, sx, sy, sz], i) => {
+      const hill = new THREE.Mesh(
+        hillGeometry,
+        new THREE.MeshLambertMaterial({ color: hillColors[i] }),
+      );
+      hill.position.set(x, y, z);
+      hill.scale.set(sx, sy, sz);
+      hill.receiveShadow = true;
+      this.horizon.add(hill);
+    });
+
+    const puffGeometry = new THREE.SphereGeometry(1, 12, 8);
+    const cloudMaterial = new THREE.MeshBasicMaterial({ color: "#edf5f3" });
+    const clouds = [
+      [-19, 13, -43, 1.2],
+      [3, 16, -58, 1.45],
+      [26, 12, -47, 1.1],
+    ] as const;
+    for (const [x, y, z, scale] of clouds) {
+      const cloud = new THREE.Group();
+      for (const [dx, dy, dz, size] of [
+        [-1.5, 0, 0, 1.35],
+        [-0.45, 0.35, 0, 1.7],
+        [0.8, 0.1, 0, 1.45],
+        [1.7, -0.05, 0, 1.05],
+      ] as const) {
+        const puff = new THREE.Mesh(puffGeometry, cloudMaterial);
+        puff.position.set(dx, dy, dz);
+        puff.scale.set(size * 1.35, size * 0.65, size);
+        cloud.add(puff);
+      }
+      cloud.position.set(x, y, z);
+      cloud.scale.setScalar(scale);
+      this.horizon.add(cloud);
+    }
+    this.horizon.visible = false;
+    this.scene.add(this.horizon);
   }
   /** Children[0] is always the tintable body: `setHighlight` writes its emissive. */
   makeProp(i: number) {
@@ -837,6 +912,14 @@ export class GameScene {
     this.playing = playing;
     for (const m of this.front) m.visible = playing;
     for (const p of this.preview) p.visible = !playing;
+    this.horizon.visible = playing;
+    const sky = playing ? GAME_SKY : LOBBY_SKY;
+    this.renderer.setClearColor(sky);
+    if (this.scene.fog instanceof THREE.Fog) {
+      this.scene.fog.color.copy(sky);
+      this.scene.fog.near = playing ? 38 : 25;
+      this.scene.fog.far = playing ? 88 : 65;
+    }
   }
   private play(a: Avatar, desired: string, speed = 1) {
     const action = [...a.actions.entries()].find(([name]) =>

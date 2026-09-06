@@ -23,6 +23,8 @@ export type Door = {
 export const LEVEL: Box[] = [
   // The common room and the hall: one floor, walls with a doorway north and east.
   { p: [0, -0.25, 0], s: [28, 0.5, 22], color: "#b7a892", kind: "floor" },
+  // Roof slabs are hidden for the landing-page dollhouse view, then restored in-game.
+  { p: [0, 5.8, 0], s: [28.4, 0.4, 22.4], color: "#d6d0bd", hide: true },
   { p: [-6, 2.8, -11], s: [16, 5.6, 0.4], color: "#ded7c5" },
   { p: [9.25, 2.8, -11], s: [9.5, 5.6, 0.4], color: "#ded7c5" },
   { p: [3.25, 4.1, -11], s: [2.5, 3, 0.4], color: "#ded7c5" },
@@ -57,6 +59,7 @@ export const LEVEL: Box[] = [
   { p: [10.9, 3.15, -8.2], s: [2.2, 0.9, 0.12], color: "#5c6b58" },
   // The workshop, east through the sliding doors.
   { p: [22, -0.25, 0], s: [16, 0.5, 18], color: "#a89e8b", kind: "floor" },
+  { p: [22, 5.8, 0], s: [16.4, 0.4, 18.4], color: "#cec6b2", hide: true },
   { p: [30, 2.8, 0], s: [0.4, 5.6, 18.4], color: "#cdc4ae" },
   { p: [21.9, 2.8, -9], s: [15.8, 5.6, 0.4], color: "#cdc4ae" },
   { p: [21.9, 2.8, 9], s: [15.8, 5.6, 0.4], color: "#cdc4ae", hide: true },
