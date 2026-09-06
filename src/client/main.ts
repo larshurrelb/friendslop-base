@@ -7,7 +7,7 @@ import "./style.css";
 import { MovementSounds } from "./audio/movement";
 import * as THREE from "three";
 import { initPhysics, Simulation, type Character } from "../shared/simulation";
-import { STEP, PALETTE, WEAPON, DOORS, propKind } from "../shared/level";
+import { STEP, PALETTE, CHARACTER_PALETTE, WEAPON, DOORS, propKind } from "../shared/level";
 import {
   BUTTON,
   decodeSnapshot,
@@ -651,7 +651,7 @@ function renderMembers() {
     row.className = "member";
     const dot = document.createElement("i");
     dot.className = "member-dot";
-    dot.style.background = PALETTE[m.color];
+    dot.style.background = CHARACTER_PALETTE[m.color];
     const info = document.createElement("div"),
       label = document.createElement("div"),
       status = document.createElement("small");

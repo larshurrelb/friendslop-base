@@ -7,7 +7,7 @@ def material(name,color,roughness=.85):
     m=bpy.data.materials.new(name);m.diffuse_color=(*color,1);m.use_nodes=True
     bs=m.node_tree.nodes.get('Principled BSDF');bs.inputs['Base Color'].default_value=(*color,1);bs.inputs['Roughness'].default_value=roughness
     return m
-cloth=material('Jacket / tintable',(.56,.29,.17));dark=material('Charcoal',(.13,.19,.18));skin=material('Warm clay',(.80,.68,.48));cream=material('Canvas',(.85,.79,.62));black=material('Eyes',(.035,.05,.04),.35);green=material('Sage cap',(.31,.43,.35));maw=material('Mouth',(.22,.09,.11),.6)
+cloth=material('Jacket / tintable',(.22,.84,.14));nose=material('Nose / tintable',(.48,.94,.42));maw=material('Mouth / tintable',(.85,.08,.90),.6);eye_white=material('EyeWhite',(.96,.96,.96),.35);eye_pupil=material('EyePupil',(.04,.04,.04),.2)
 # Head geometry, shared by the rig and the two halves it splits into.
 HEAD=(0,-.015,1.53);HEAD_SIZE=(.58,.52,.55);JAW_LINE=1.47;HINGE=(0,.20,JAW_LINE)
 bpy.ops.object.armature_add();rig=bpy.context.object;rig.name='CommonRoomRig';bpy.ops.object.mode_set(mode='EDIT');rig.data.edit_bones.remove(rig.data.edit_bones[0])
@@ -51,78 +51,52 @@ def head_half(name,upper,bone):
  rim=[e for e in cut['geom_cut'] if isinstance(e,bmesh.types.BMEdge)]
  for f in bmesh.ops.holes_fill(bm,edges=rim,sides=0)['faces']:f.smooth=False;f.material_index=1
  bm.to_mesh(o.data);bm.free();o.data.update()
- o.name=name;o.data.materials.append(skin);o.data.materials.append(maw)
+ o.name=name;o.data.materials.append(cloth);o.data.materials.append(maw)
  group=o.vertex_groups.new(name=bone);group.add(list(range(len(o.data.vertices))),1,'REPLACE')
  mod=o.modifiers.new('Rig','ARMATURE');mod.object=rig;o.parent=rig
  return o
-def panel(name,p,size,mat,bone,bevel=.015):
- bpy.ops.mesh.primitive_cube_add(size=1,location=p);o=bpy.context.object;o.dimensions=size
- bpy.ops.object.transform_apply(location=False,rotation=False,scale=True)
- mod=o.modifiers.new('Soft tailored edges','BEVEL');mod.width=bevel;mod.segments=4
- bpy.context.view_layer.objects.active=o;bpy.ops.object.modifier_apply(modifier=mod.name)
- return finish(o,name,size,mat,bone)
-def seam(name,points,mat,bone,radius=.003):
- curve=bpy.data.curves.new(name,'CURVE');curve.dimensions='3D';curve.bevel_depth=radius;curve.bevel_resolution=2
- line=curve.splines.new('POLY');line.points.add(len(points)-1)
- for v,p in zip(line.points,points):v.co=(*p,1)
- o=bpy.data.objects.new(name,curve);bpy.context.collection.objects.link(o)
- bpy.ops.object.select_all(action='DESELECT');o.select_set(True);bpy.context.view_layer.objects.active=o;bpy.ops.object.convert(target='MESH')
- o=bpy.context.object;o.data.materials.append(mat);group=o.vertex_groups.new(name=bone);group.add(list(range(len(o.data.vertices))),1,'REPLACE')
- mod=o.modifiers.new('Rig','ARMATURE');mod.object=rig;o.parent=rig
- return o
-# Soft workwear: a tailored barrel torso, round shoulders, ribbed cuffs, real pocket and zip.
-# One continuous tailored surface avoids visible intersections across the shoulders.
-profile=[(.775,.205,.14),(.80,.24,.166),(.86,.255,.181),(1.04,.264,.188),(1.20,.273,.177),(1.265,.263,.16),(1.315,.16,.119),(1.34,.11,.10)]
+# Puppet creature body: smooth pear-shaped torso without clothes.
+profile=[(.76,.23,.17),(.82,.255,.185),(.92,.27,.195),(1.05,.27,.19),(1.17,.25,.175),(1.25,.22,.155),(1.31,.16,.125),(1.35,.115,.105)]
 vertices=[(rx*math.cos(i/32*2*math.pi),ry*math.sin(i/32*2*math.pi),z) for z,rx,ry in profile for i in range(32)]
 faces=[]
 for j in range(len(profile)-1):
  for i in range(32):faces.append((j*32+i,j*32+(i+1)%32,(j+1)*32+(i+1)%32,(j+1)*32+i))
 faces += [tuple(reversed(range(32))),tuple((len(profile)-1)*32+i for i in range(32))]
-mesh=bpy.data.meshes.new('Tailored jacket');mesh.from_pydata(vertices,[],faces);mesh.update()
-o=bpy.data.objects.new('Jacket',mesh);bpy.context.collection.objects.link(o)
+mesh=bpy.data.meshes.new('Puppet body');mesh.from_pydata(vertices,[],faces);mesh.update()
+o=bpy.data.objects.new('Body',mesh);bpy.context.collection.objects.link(o)
 o.data.materials.append(cloth)
 for f in o.data.polygons:f.use_smooth=True
 group=o.vertex_groups.new(name='spine');group.add(list(range(len(o.data.vertices))),1,'REPLACE')
 mod=o.modifiers.new('Rig','ARMATURE');mod.object=rig;o.parent=rig
-ball('Pants',(0,.005,.78),(.43,.32,.31),dark,'hips',rings=12)
-ball('Neck',(0,0,1.34),(.19,.19,.17),skin,'head',segments=16,rings=10)
-column('Collar',(0,0,1.32),(.255,.245,.10),cloth,'spine',taper=1.02,round_ends=.2)
-column('Jacket hem',(0,0,.797),(.475,.331,.035),cloth,'spine',verts=32,round_ends=.2)
-for sign,label in [(1,'L'),(-1,'R')]:
- column('Thigh.'+label,(sign*.13,0,.595),(.205,.225,.37),dark,'leg'+label,taper=1.04,verts=24,round_ends=.4)
- ball('Knee.'+label,(sign*.13,0,.425),(.198,.214,.19),dark,'shin'+label)
- column('Trouser.'+label,(sign*.13,0,.28),(.18,.195,.33),dark,'shin'+label,taper=1.08,verts=24,round_ends=.4)
- column('Trouser cuff.'+label,(sign*.13,0,.145),(.181,.195,.055),dark,'shin'+label,round_ends=.3)
- ball('Boot.'+label,(sign*.13,-.058,.105),(.22,.35,.20),green,'foot'+label,segments=24,rings=14)
- ball('Sole.'+label,(sign*.13,-.058,.043),(.224,.352,.073),dark,'foot'+label,segments=24,rings=10)
- ball('Upper sleeve.'+label,(sign*.31,0,1.155),(.19,.205,.32),cloth,'arm'+label)
- ball('Elbow.'+label,(sign*.31,0,1.005),(.174,.188,.17),cloth,'forearm'+label)
- column('Lower sleeve.'+label,(sign*.31,0,.915),(.165,.18,.26),cloth,'forearm'+label,taper=1.12,verts=24,round_ends=.42)
- column('Cuff.'+label,(sign*.31,0,.798),(.169,.181,.06),cloth,'forearm'+label,round_ends=.3)
- ball('Mitten.'+label,(sign*.31,-.018,.707),(.15,.165,.205),skin,'forearm'+label)
- ball('Thumb.'+label,(sign*.256,-.072,.726),(.068,.088,.108),skin,'forearm'+label,segments=16,rings=10)
+ball('Pelvis',(0,.005,.78),(.45,.35,.33),cloth,'hips',rings=14)
+ball('Neck',(0,0,1.34),(.22,.22,.18),cloth,'head',segments=18,rings=10)
+# Head halves: Cranium hinges open on jaw, Jawbowl sits on head
 head_half('Cranium',True,'jaw');head_half('Jawbowl',False,'head')
-# Rounded flat cap, short curved visor, band and original stitched crown seams.
-ball('Cap crown',(0,.008,1.758),(.61,.562,.255),green,'jaw',segments=32,rings=16)
-column('Cap band',(0,-.002,1.711),(.595,.536,.059),green,'jaw',verts=32,round_ends=.35)
-ball('Cap visor',(0,-.242,1.698),(.55,.36,.052),green,'jaw',segments=28,rings=10,tilt=-.055)
-for side in [-1,1]:
- points=[]
- for i in range(21):
-  t=-1.1+i/20*2.2
-  x=side*.16*math.cos(t);y=.268*math.sin(t)
-  z=.1275*math.sqrt(max(0,1-(x/.305)**2-(y/.281)**2))
-  points.append((x,.008+y,1.758+z+.001))
- seam('Cap seam',points,green,'jaw',.0028)
-for x in [-.112,.112]:
- ball('Eye',(x,-.248,1.577),(.066,.043,.078),black,'jaw',segments=20,rings=12)
- ball('Eye glint',(x-.011,-.269,1.594),(.009,.006,.010),cream,'jaw',segments=10,rings=6)
-panel('Pocket',(.125,-.186,1.036),(.157,.024,.151),cloth,'spine',.021)
-panel('Pocket welt',(.125,-.204,1.096),(.163,.018,.019),cloth,'spine',.006)
-panel('Zip tape',(0,-.177,1.063),(.025,.014,.446),green,'spine',.004)
-for i in range(21):panel('Zip teeth',(0,-.187,.855+i*.018),(.013,.007,.006),dark,'spine',.002)
-panel('Zip pull',(0,-.192,1.233),(.019,.012,.035),dark,'spine',.005)
-seam('Pocket stitching',[(.057,-.201,1.085),(.057,-.201,.973),(.065,-.201,.966),(.188,-.201,.966),(.194,-.201,.973),(.194,-.201,1.085)],cloth,'spine',.002)
+# Googly cartoon eyes and plump oval nose on the upper head (weighted to jaw so they lift when mouth opens)
+for sign,label in [(1,'L'),(-1,'R')]:
+ ball('Eyeball.'+label,(sign*.12,-.235,1.575),(.13,.12,.13),eye_white,'jaw',segments=20,rings=12)
+ ball('Pupil.'+label,(sign*.10,-.292,1.575),(.055,.04,.055),eye_pupil,'jaw',segments=14,rings=8)
+ball('Nose',(0,-.275,1.53),(.11,.12,.15),nose,'jaw',segments=20,rings=12)
+# Arms and hands: rounded shoulders, articulated arms, palm, thumb and 3 fingers
+for sign,label in [(1,'L'),(-1,'R')]:
+ ball('Shoulder.'+label,(sign*.28,0,1.22),(.15,.15,.15),cloth,'arm'+label,segments=16,rings=10)
+ column('Upper arm.'+label,(sign*.285,0,1.11),(.13,.13,.24),cloth,'arm'+label,taper=.95,verts=18,round_ends=.4)
+ ball('Elbow.'+label,(sign*.29,0,1.00),(.13,.13,.13),cloth,'forearm'+label,segments=16,rings=10)
+ column('Forearm.'+label,(sign*.29,0,.88),(.12,.12,.22),cloth,'forearm'+label,taper=.92,verts=18,round_ends=.4)
+ ball('Palm.'+label,(sign*.29,-.015,.74),(.12,.13,.12),cloth,'forearm'+label,segments=16,rings=10)
+ ball('Thumb.'+label,(sign*.235,-.045,.745),(.06,.075,.085),cloth,'forearm'+label,segments=12,rings=8)
+ ball('Finger1.'+label,(sign*.26,-.02,.66),(.045,.05,.09),cloth,'forearm'+label,segments=12,rings=8)
+ ball('Finger2.'+label,(sign*.29,-.02,.65),(.046,.05,.10),cloth,'forearm'+label,segments=12,rings=8)
+ ball('Finger3.'+label,(sign*.32,-.02,.66),(.045,.05,.09),cloth,'forearm'+label,segments=12,rings=8)
+# Legs and feet: creature legs with rounded foot and 3 cute puppet toes
+for sign,label in [(1,'L'),(-1,'R')]:
+ column('Thigh.'+label,(sign*.13,0,.59),(.17,.18,.35),cloth,'leg'+label,taper=.96,verts=20,round_ends=.4)
+ ball('Knee.'+label,(sign*.13,0,.42),(.16,.17,.16),cloth,'shin'+label,segments=16,rings=10)
+ column('Shin.'+label,(sign*.13,0,.27),(.15,.16,.31),cloth,'shin'+label,taper=.9,verts=20,round_ends=.4)
+ ball('Foot.'+label,(sign*.13,-.05,.08),(.18,.25,.13),cloth,'foot'+label,segments=20,rings=12)
+ ball('Toe1.'+label,(sign*.075,-.17,.06),(.065,.09,.07),cloth,'foot'+label,segments=14,rings=8)
+ ball('Toe2.'+label,(sign*.13,-.185,.06),(.068,.095,.07),cloth,'foot'+label,segments=14,rings=8)
+ ball('Toe3.'+label,(sign*.185,-.17,.06),(.062,.085,.07),cloth,'foot'+label,segments=14,rings=8)
 # Explicit actions exported as glTF animation clips. The head and jaw are left unkeyed
 # so the runtime can aim them from look-pitch and voice loudness.
 DRIVEN={'head','jaw'}

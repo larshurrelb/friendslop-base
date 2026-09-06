@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { GLTFLoader, type GLTF } from "three/addons/loaders/GLTFLoader.js";
 import { clone } from "three/addons/utils/SkeletonUtils.js";
-import { DOORS, LEVEL, PALETTE, PROPS } from "../../shared/level";
+import { CHARACTER_PALETTE, DOORS, LEVEL, PALETTE, PROPS } from "../../shared/level";
 import type { DoorState } from "../../shared/simulation";
 import type { PlayerState, PropState } from "../../shared/protocol";
 type Avatar = {
@@ -696,9 +696,27 @@ export class GameScene {
         o.receiveShadow = true;
         const mats = Array.isArray(o.material) ? o.material : [o.material];
         const clonedMaterials = mats.map((m) => {
-          const copy = m.clone();
-          if (m.name.startsWith("Jacket"))
-            (copy as THREE.MeshStandardMaterial).color.set(PALETTE[color % 8]);
+          const copy = m.clone() as THREE.MeshStandardMaterial;
+          const baseColor = new THREE.Color(CHARACTER_PALETTE[color % 8]);
+          if (m.name.startsWith("Jacket") || m.name.startsWith("Body")) {
+            copy.color.copy(baseColor);
+          } else if (m.name.startsWith("Nose")) {
+            const hsl = { h: 0, s: 0, l: 0 };
+            baseColor.getHSL(hsl);
+            copy.color.setHSL(
+              hsl.h,
+              Math.min(1, Math.max(0.8, hsl.s)),
+              Math.min(0.82, hsl.l * 1.25 + 0.08),
+            );
+          } else if (m.name.startsWith("Mouth")) {
+            const hsl = { h: 0, s: 0, l: 0 };
+            baseColor.getHSL(hsl);
+            copy.color.setHSL(
+              (hsl.h + 0.5) % 1.0,
+              Math.min(1, Math.max(0.85, hsl.s * 1.1)),
+              0.48,
+            );
+          }
           return copy;
         });
         o.material = Array.isArray(o.material)

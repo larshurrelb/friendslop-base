@@ -195,6 +195,16 @@ export const PALETTE = [
   "#82a8a2",
   "#c78fa0",
 ];
+export const CHARACTER_PALETTE = [
+  "#ff9d00",
+  "#32d41e",
+  "#ff283b",
+  "#00b2ff",
+  "#a036ff",
+  "#ffd800",
+  "#00deb0",
+  "#ff288f",
+];
 export const STEP = 1 / 60;
 export const MAX_PLAYERS = 8;
 /** Seconds for a leaf to travel, and how close an automatic door watches for. */
