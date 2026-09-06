@@ -43,7 +43,8 @@ button:disabled {
 }
 button:focus-visible,
 input:focus-visible,
-select:focus-visible {
+select:focus-visible,
+.github-button:focus-visible {
   outline: 3px solid #87a455;
   outline-offset: 3px;
 }
@@ -144,6 +145,35 @@ button:active {
   display: flex;
   gap: 10px;
   align-items: center;
+}
+.github-button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 34px;
+  padding: 8px 13px;
+  border: 1px solid var(--ink);
+  border-radius: 7px;
+  background: var(--ink);
+  color: var(--cream);
+  font-size: 14px;
+  font-weight: 650;
+  text-decoration: none;
+  width: fit-content;
+  margin: -10px 0 20px;
+  transition:
+    background 0.15s,
+    transform 0.15s;
+}
+.github-button:hover {
+  background: #3a5041;
+}
+.github-button:active {
+  transform: translateY(1px);
+}
+.github-arrow {
+  font-size: 16px;
+  line-height: 1;
 }
 .pill {
   display: flex;

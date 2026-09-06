@@ -237,7 +237,7 @@ export class GameScene {
       this.scene.add(leaf);
     }
     this.loaded = new GLTFLoader()
-      .loadAsync("/models/common-worker.glb")
+      .loadAsync(new URL("models/common-worker.glb", document.baseURI).href)
       .then((asset) => {
         this.asset = asset;
         for (const [i, p] of [

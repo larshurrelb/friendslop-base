@@ -109,6 +109,11 @@ hosts use `npm run build:client`; the Dockerfile and `render.yaml` build the
 single-process Node deployment. More options are in
 [docs/deployment.md](docs/deployment.md).
 
+GitHub Pages deployment is included in
+[`.github/workflows/pages.yml`](.github/workflows/pages.yml). Enable Pages with
+**GitHub Actions** as its source; pushes to `main` then publish the static/P2P
+client.
+
 Relayed voice is encrypted in transit with HTTPS/WSS but is readable by the
 authority process; it is not application-level end-to-end encrypted. Direct
 WebRTC voice is peer encrypted. Operators should disclose this distinction to

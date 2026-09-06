@@ -87,6 +87,18 @@ deployments configured side by side without either affecting the other.
 Cloudflare Pages and GitHub Pages want the same thing: build command
 `npm run build:client`, output directory `dist/client`.
 
+### GitHub Pages
+
+The committed `.github/workflows/pages.yml` builds and publishes the static/P2P
+client whenever `main` changes. It reads the repository's Pages base path from
+GitHub and passes it to Vite, so project sites such as `/friendslop-base/` load
+their scripts, fonts, model, audio, configuration and invite links correctly.
+
+In the repository on GitHub, open **Settings → Pages**, set **Source** to
+**GitHub Actions**, and then run the workflow or push to `main`. For the
+`larshurrelb/friendslop-base` repository the default URL is
+`https://larshurrelb.github.io/friendslop-base/`.
+
 ## Production locally
 
 ```sh

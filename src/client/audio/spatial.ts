@@ -70,7 +70,9 @@ export class SpatialAudio {
   async init() {
     await Promise.all(
       REVERB_REGIONS.map(async (region) => {
-        const response = await fetch(region.impulse);
+        const response = await fetch(
+          new URL(region.impulse, document.baseURI),
+        );
         this.convolvers.get(region.id)!.buffer =
           await this.context.decodeAudioData(await response.arrayBuffer());
       }),

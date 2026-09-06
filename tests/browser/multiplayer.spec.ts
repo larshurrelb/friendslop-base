@@ -63,6 +63,14 @@ test("Chrome lobby, authoritative movement and reconnect", async ({
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/");
   await expect(page.locator("#loading")).toBeHidden();
+  const github = page.getByRole("link", {
+    name: "Get Friendslop Base on GitHub",
+  });
+  await expect(github).toHaveAttribute(
+    "href",
+    "https://github.com/larshurrelb/friendslop-base",
+  );
+  await expect(github).toHaveAttribute("target", "_blank");
   await page.screenshot({ path: "test-results/lobby.png" });
   const code = await create(page, "Scout");
   const friend = await context.newPage();

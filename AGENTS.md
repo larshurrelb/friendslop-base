@@ -99,6 +99,7 @@ tests/
 docs/                         architecture.md (wire format), voice.md (state machine, latency),
                               deployment.md, THIRD_PARTY.md
 Dockerfile, render.yaml       Single-container deploy; TLS optional via TLS_CERT/TLS_KEY
+.github/workflows/pages.yml  Static/P2P client deploy to GitHub Pages
 ```
 
 ## 3. How it works (the model to keep in your head)
@@ -402,6 +403,8 @@ build with a health check on `/healthz`; `render.yaml` is a one-service
 blueprint. TLS can terminate in Node with `TLS_CERT`/`TLS_KEY`. Remote voice
 needs HTTPS (LAN HTTP does not get the microphone exception). Deploys reset
 rooms; there is no cross-instance room routing. Details: `docs/deployment.md`.
+The GitHub Pages workflow publishes `dist/client` in browser-hosted P2P mode and
+uses GitHub's reported base path so repository subpaths work.
 
 ## 12. The two deployment modes
 

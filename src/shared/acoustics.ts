@@ -14,7 +14,7 @@ export const REVERB_REGIONS: ReverbRegion[] = [
     min: { x: -14, y: -1, z: -11 },
     max: { x: 5, y: 7, z: 11 },
     blendWidth: 1,
-    impulse: "/audio/room.wav",
+    impulse: "audio/room.wav",
     wet: 0.12,
   },
   {
@@ -22,7 +22,7 @@ export const REVERB_REGIONS: ReverbRegion[] = [
     min: { x: 5, y: -1, z: -11 },
     max: { x: 14, y: 7, z: 11 },
     blendWidth: 1,
-    impulse: "/audio/hall.wav",
+    impulse: "audio/hall.wav",
     wet: 0.32,
   },
   {
@@ -30,7 +30,7 @@ export const REVERB_REGIONS: ReverbRegion[] = [
     min: { x: 14, y: -1, z: -9 },
     max: { x: 30, y: 7, z: 9 },
     blendWidth: 1,
-    impulse: "/audio/hall.wav",
+    impulse: "audio/hall.wav",
     wet: 0.36,
   },
   {
@@ -38,7 +38,7 @@ export const REVERB_REGIONS: ReverbRegion[] = [
     min: { x: -13, y: -1, z: -26 },
     max: { x: 13, y: 9, z: -11 },
     blendWidth: 1,
-    impulse: "/audio/yard.wav",
+    impulse: "audio/yard.wav",
     wet: 0.07,
   },
 ];
