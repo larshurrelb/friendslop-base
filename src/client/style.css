@@ -369,34 +369,7 @@ label {
   font-size: 13px;
   color: #809366;
 }
-.lobby-characters {
-  width: 235px;
-  margin-bottom: 12px;
-  pointer-events: none;
-  user-select: none;
-}
-.lobby-characters img {
-  display: block;
-  width: 100%;
-  height: auto;
-  filter: drop-shadow(0 14px 24px rgba(41, 60, 50, 0.08));
-}
-@media (max-width: 900px) {
-  .lobby-characters {
-    width: 195px;
-    margin-bottom: 10px;
-  }
-}
-@media (max-width: 600px) {
-  .lobby-characters {
-    display: none;
-  }
-}
 @media (max-height: 820px) {
-  .lobby-characters {
-    width: 175px;
-    margin-bottom: 6px;
-  }
   h1 {
     font-size: 40px;
     margin: 12px 0 10px;
@@ -938,7 +911,6 @@ body.turning * {
   .ready .intro,
   .ready .github-button,
   .ready .entry-card,
-  .ready .lobby-characters,
   .ready .lobby-foot,
   .ready .mobile-notice,
   .ready .scene-caption {
@@ -952,9 +924,6 @@ body.turning * {
   }
   .ready .top-actions {
     animation-delay: 0.13s;
-  }
-  .ready .lobby-characters {
-    animation-delay: 0.12s;
   }
   .ready .eyebrow {
     animation-delay: 0.18s;
