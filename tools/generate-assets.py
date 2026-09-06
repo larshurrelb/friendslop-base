@@ -3,11 +3,11 @@ import bpy, bmesh, math
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 bpy.ops.object.select_all(action='SELECT');bpy.ops.object.delete(use_global=False)
-def material(name,color,roughness=.85):
+def material(name,color,roughness=.55):
     m=bpy.data.materials.new(name);m.diffuse_color=(*color,1);m.use_nodes=True
     bs=m.node_tree.nodes.get('Principled BSDF');bs.inputs['Base Color'].default_value=(*color,1);bs.inputs['Roughness'].default_value=roughness
     return m
-cloth=material('Jacket / tintable',(.22,.84,.14));nose=material('Nose / tintable',(.48,.94,.42));maw=material('Mouth / tintable',(.85,.08,.90),.6);eye_white=material('EyeWhite',(.96,.96,.96),.35);eye_pupil=material('EyePupil',(.04,.04,.04),.2)
+cloth=material('Jacket / tintable',(.18,.88,.10));nose=material('Nose / tintable',(.42,.98,.35));maw=material('Mouth / tintable',(.95,.05,.45),.5);eye_white=material('EyeWhite',(.98,.98,.98),.25);eye_pupil=material('EyePupil',(.02,.02,.02),.15)
 # Head geometry, shared by the rig and the two halves it splits into.
 HEAD=(0,-.015,1.53);HEAD_SIZE=(.58,.52,.55);JAW_LINE=1.47;HINGE=(0,.20,JAW_LINE)
 bpy.ops.object.armature_add();rig=bpy.context.object;rig.name='CommonRoomRig';bpy.ops.object.mode_set(mode='EDIT');rig.data.edit_bones.remove(rig.data.edit_bones[0])

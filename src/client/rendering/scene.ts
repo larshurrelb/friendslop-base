@@ -700,22 +700,25 @@ export class GameScene {
           const baseColor = new THREE.Color(CHARACTER_PALETTE[color % 8]);
           if (m.name.startsWith("Jacket") || m.name.startsWith("Body")) {
             copy.color.copy(baseColor);
+            copy.roughness = 0.55;
           } else if (m.name.startsWith("Nose")) {
             const hsl = { h: 0, s: 0, l: 0 };
             baseColor.getHSL(hsl);
             copy.color.setHSL(
               hsl.h,
-              Math.min(1, Math.max(0.8, hsl.s)),
-              Math.min(0.82, hsl.l * 1.25 + 0.08),
+              1.0,
+              Math.min(0.85, hsl.l * 1.25 + 0.1),
             );
+            copy.roughness = 0.5;
           } else if (m.name.startsWith("Mouth")) {
             const hsl = { h: 0, s: 0, l: 0 };
             baseColor.getHSL(hsl);
             copy.color.setHSL(
               (hsl.h + 0.5) % 1.0,
-              Math.min(1, Math.max(0.85, hsl.s * 1.1)),
+              1.0,
               0.48,
             );
+            copy.roughness = 0.5;
           }
           return copy;
         });
