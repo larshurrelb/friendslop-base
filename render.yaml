@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: friendslop-base
+    runtime: docker
+    plan: starter
+    healthCheckPath: /healthz
+    envVars:
+      - key: PORT
+        value: 3000

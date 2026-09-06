@@ -1,0 +1,17 @@
+node_modules/
+dist/
+test-results/
+playwright-report/
+capture-output/
+capture-*-output/
+*.blend1
+.DS_Store
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.pfx
+
+/artifacts/

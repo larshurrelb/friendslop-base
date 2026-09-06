@@ -1,0 +1,8 @@
+# Static deployment: the browser hosts rooms, there is no server of ours.
+# See docs/deployment.md for the Node alternative and the connectivity caveat.
+[build]
+  command = "npm run build:client"
+  publish = "dist/client"
+
+[build.environment]
+  NODE_VERSION = "22"

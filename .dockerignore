@@ -1,0 +1,16 @@
+node_modules
+dist
+.git
+test-results
+playwright-report
+capture-output
+capture-*-output
+assets-source
+.env
+.env.*
+*.key
+*.pem
+*.p12
+*.pfx
+*.blend1
+.DS_Store

@@ -1,0 +1,45 @@
+{
+  "name": "friendslop-base",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "description": "A one-server, browser multiplayer playground with spatial voice.",
+  "engines": {
+    "node": ">=22.20.0"
+  },
+  "scripts": {
+    "dev": "node --experimental-strip-types tools/dev.ts",
+    "build": "tsc --noEmit && vite build && tsc -p tsconfig.server.json",
+    "build:client": "tsc --noEmit && vite build",
+    "start": "node dist/server/server/index.js",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test tests/*.test.ts",
+    "test:browser": "playwright test",
+    "assets": "python3 tools/generate-ir.py && blender --background --factory-startup --python tools/generate-assets.py",
+    "bots": "node --import tsx tools/bots.ts",
+    "broker": "node --experimental-strip-types tools/broker.ts",
+    "test:server": "node --import tsx --test tests/server/*.test.ts"
+  },
+  "dependencies": {
+    "@dimforge/rapier3d-compat": "^0.19.0",
+    "libopus-wasm": "0.2.0",
+    "peerjs": "^1.5.5",
+    "sirv": "^3.0.2",
+    "three": "^0.180.0",
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0",
+    "@types/node": "^22.18.0",
+    "@types/three": "^0.180.0",
+    "@types/ws": "^8.18.1",
+    "peer": "^1.0.2",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.5"
+  },
+  "overrides": {
+    "qs": "6.16.0"
+  },
+  "license": "MIT"
+}
