@@ -1,4 +1,8 @@
-# Friendslop Base
+<p align="center">
+  <img src="public/favicon.svg" width="96" alt="Friendslop Base logo">
+</p>
+
+<h1 align="center">Friendslop Base</h1>
 
 An open-source browser multiplayer starter for 2–8 people. It provides a shared
 3D building and yard, authoritative physics, throwable props, bouncy balls,
@@ -7,6 +11,11 @@ objectives, scores, health, or deaths—the game you build supplies those.
 
 The stack is TypeScript, Three.js, Rapier, WebSockets/WebRTC, Vite, and
 Playwright. Code and original assets are MIT licensed.
+
+<p align="center">
+  <img src="docs/media/lobby.webp" width="49%" alt="Friendslop Base lobby and building overview">
+  <img src="docs/media/multiplayer-voice.webp" width="49%" alt="Seven Friendslop players using proximity voice in the common room">
+</p>
 
 ## Run locally
 
