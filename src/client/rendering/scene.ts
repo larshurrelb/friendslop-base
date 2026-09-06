@@ -21,6 +21,15 @@ type Avatar = {
 };
 /** A bone the runtime aims by hand, plus the pose the mixer last gave it. */
 type Driven = { bone: THREE.Object3D; posed: THREE.Quaternion };
+/**
+ * The lobby camera orbits this point. OVERVIEW is the resting framing the landing page was
+ * composed around; the drift, the visitor's drag and the arrival flight all ride on top of it.
+ */
+const FOCUS = new THREE.Vector3(2, 0, -3);
+const OVERVIEW = { yaw: 0.632, pitch: 0.514, dist: 42.7 };
+/** How far a visitor may swing the camera before it stops giving. */
+const SWING = { yaw: 0.62, pitch: [0.3, 0.95], dist: [24, 47] };
+const ARRIVAL = 2.4;
 const MOUTH_OPEN = 0.5;
 const HEAD_TILT = 0.55;
 const HOLD_LIFT = -1.1;
@@ -82,6 +91,15 @@ export class GameScene {
   clock = 0;
   loaded: Promise<void>;
   preview: THREE.Group[] = [];
+  /** True while a visitor is dragging the lobby camera; suspends the pointer parallax. */
+  private dragging = false;
+  /** Visitor-owned offsets from OVERVIEW, the spin left over from a release, and the drift. */
+  private swung = { yaw: 0, pitch: 0, dist: 0 };
+  private coasting = { yaw: 0, pitch: 0 };
+  private parallax = { x: 0, y: 0, wantX: 0, wantY: 0 };
+  private drift = 0;
+  private arrival = 0;
+  private calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
   constructor(container: HTMLElement) {
     this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
     this.renderer.shadowMap.enabled = true;
@@ -371,7 +389,7 @@ export class GameScene {
     this.box([12, 5.15, -6.5], [0.035, 1.1, 0.035], "#3a4840");
     this.sign(
       "05  /  THE MEZZANINE",
-      [9.73, 3.45, -5.7],
+      [9.66, 3.35, -5.7],
       2.6,
       0.4,
       "#edebd7",
@@ -389,7 +407,7 @@ export class GameScene {
     );
     this.sign(
       "TAKE ONE.\nMIND THE WINDOWS.",
-      [24.2, 3.1, -5.7],
+      [24.26, 4.1, -5.7],
       1.5,
       0.9,
       "#e8e2cc",
@@ -726,10 +744,100 @@ export class GameScene {
     for (const m of this.front) m.visible = playing;
     for (const p of this.preview) p.visible = !playing;
   }
-  overview(t: number) {
+  /** A visitor took hold of the lobby camera. */
+  grab() {
+    this.dragging = true;
+    this.coasting.yaw = this.coasting.pitch = 0;
+  }
+  /** …and let go of it, leaving it coasting on the last of the drag. */
+  letGo() {
+    this.dragging = false;
+  }
+  /**
+   * Swing the lobby camera by a drag of `dx`/`dy` viewport pixels over `dt` seconds. The
+   * rate is kept, so the camera carries on turning after the visitor lets go.
+   */
+  orbitBy(dx: number, dy: number, dt: number) {
+    const { clamp } = THREE.MathUtils;
+    const was = { yaw: this.swung.yaw, pitch: this.swung.pitch };
+    this.swung.yaw = clamp(this.swung.yaw - dx * 0.004, -SWING.yaw, SWING.yaw);
+    this.swung.pitch = clamp(
+      this.swung.pitch + dy * 0.003,
+      SWING.pitch[0] - OVERVIEW.pitch,
+      SWING.pitch[1] - OVERVIEW.pitch,
+    );
+    if (dt <= 0) return;
+    this.coasting.yaw = clamp((this.swung.yaw - was.yaw) / dt, -2.5, 2.5);
+    this.coasting.pitch = clamp((this.swung.pitch - was.pitch) / dt, -2.5, 2.5);
+  }
+  /** Push the lobby camera in or out; `delta` is raw wheel movement. */
+  zoomBy(delta: number) {
+    this.swung.dist = THREE.MathUtils.clamp(
+      this.swung.dist + delta * 0.02,
+      SWING.dist[0] - OVERVIEW.dist,
+      SWING.dist[1] - OVERVIEW.dist,
+    );
+  }
+  /** Where the pointer sits, -1..1 across the viewport, for the idle parallax. */
+  aim(x: number, y: number) {
+    this.parallax.wantX = x;
+    this.parallax.wantY = y;
+  }
+  /**
+   * The landing-page camera: a slow orbit of the building that a visitor can drag, plus a
+   * one-off arrival flight the first time the world is shown.
+   */
+  overview(dt: number) {
     if (this.playing) return;
-    this.camera.position.set(24 + Math.sin(t * 0.08) * 0.6, 21, 27);
-    this.camera.lookAt(2, 0, -3);
+    const { clamp, lerp } = THREE.MathUtils;
+    this.drift += dt;
+    this.arrival = this.calm ? 1 : Math.min(1, this.arrival + dt / ARRIVAL);
+    const landed = 1 - Math.pow(1 - this.arrival, 3);
+    if (!this.dragging) {
+      // Carry the release through and bleed it off, then the rig coasts on the drift alone.
+      this.swung.yaw = clamp(
+        this.swung.yaw + this.coasting.yaw * dt,
+        -SWING.yaw,
+        SWING.yaw,
+      );
+      this.swung.pitch = clamp(
+        this.swung.pitch + this.coasting.pitch * dt,
+        SWING.pitch[0] - OVERVIEW.pitch,
+        SWING.pitch[1] - OVERVIEW.pitch,
+      );
+      const decay = Math.exp(-dt * 3.2);
+      this.coasting.yaw *= decay;
+      this.coasting.pitch *= decay;
+    }
+    // The parallax is a whisper — enough that the room answers a moving mouse.
+    const follow = this.dragging || this.calm ? 0 : 1;
+    const ease = Math.min(1, dt * 2.4);
+    this.parallax.x = lerp(this.parallax.x, this.parallax.wantX * follow, ease);
+    this.parallax.y = lerp(this.parallax.y, this.parallax.wantY * follow, ease);
+    const alive = this.calm ? 0 : 1;
+    const yaw =
+      OVERVIEW.yaw +
+      this.swung.yaw +
+      Math.sin(this.drift * 0.11) * 0.075 * alive +
+      this.parallax.x * 0.035 -
+      (1 - landed) * 0.22;
+    const pitch = clamp(
+      OVERVIEW.pitch +
+        this.swung.pitch +
+        Math.sin(this.drift * 0.07 + 1.3) * 0.018 * alive +
+        this.parallax.y * 0.02 +
+        (1 - landed) * 0.12,
+      SWING.pitch[0],
+      SWING.pitch[1],
+    );
+    const dist = (OVERVIEW.dist + this.swung.dist) * (1 + (1 - landed) * 0.14);
+    const flat = Math.cos(pitch) * dist;
+    this.camera.position.set(
+      FOCUS.x + Math.sin(yaw) * flat,
+      FOCUS.y + Math.sin(pitch) * dist,
+      FOCUS.z + Math.cos(yaw) * flat,
+    );
+    this.camera.lookAt(FOCUS);
     for (const m of this.front) m.visible = false;
   }
   updatePlayer(s: PlayerState, name: string, dt: number, color = s.id - 1) {

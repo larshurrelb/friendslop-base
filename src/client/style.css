@@ -237,6 +237,16 @@ h1 em {
   font-style: normal;
   color: #73855e;
 }
+/* Each headline line is its own mask, so the words can slide up out of nothing. */
+h1 .line {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.09em;
+  margin-bottom: -0.09em;
+}
+h1 .line > span {
+  display: block;
+}
 .intro {
   font-size: 14px;
   line-height: 1.7;
@@ -390,6 +400,24 @@ label {
   letter-spacing: 1px;
   display: block;
   margin-top: 5px;
+}
+.scene-caption .drag-hint {
+  color: #6b7d63;
+  letter-spacing: 0.4px;
+  margin-top: 3px;
+}
+/* The backdrop is a camera you can turn, so say so with the cursor as well. */
+body:not(.playing) #world canvas,
+body:not(.playing) .lobby,
+body:not(.playing) .scene-caption {
+  cursor: grab;
+}
+body:not(.playing) .entry-card {
+  cursor: auto;
+}
+body.turning,
+body.turning * {
+  cursor: grabbing !important;
 }
 .footer {
   position: fixed;
@@ -817,6 +845,89 @@ label {
 }
 .mobile-notice {
   display: none;
+}
+/*
+ * The landing copy is held back until the world has loaded, then arrives a line at a time
+ * alongside the camera's flight in. Everything uses `backwards` fill so the resting state
+ * stays whatever the rules above say it is.
+ */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+}
+@keyframes drop {
+  from {
+    opacity: 0;
+    transform: translateY(-9px);
+  }
+}
+@keyframes unmask {
+  from {
+    transform: translateY(105%);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  body:not(.ready) .topbar,
+  body:not(.ready) .lobby,
+  body:not(.ready) .scene-caption,
+  body:not(.ready) .footer {
+    opacity: 0;
+  }
+  .ready .brand,
+  .ready .top-actions,
+  .ready .footer > * {
+    animation: drop 0.65s cubic-bezier(0.22, 0.68, 0.24, 1) backwards;
+  }
+  .ready .eyebrow,
+  .ready .intro,
+  .ready .github-button,
+  .ready .entry-card,
+  .ready .lobby-foot,
+  .ready .mobile-notice,
+  .ready .scene-caption {
+    animation: rise 0.75s cubic-bezier(0.22, 0.68, 0.24, 1) backwards;
+  }
+  .ready h1 .line > span {
+    animation: unmask 0.85s cubic-bezier(0.19, 0.72, 0.21, 1) backwards;
+  }
+  .ready .brand {
+    animation-delay: 0.06s;
+  }
+  .ready .top-actions {
+    animation-delay: 0.13s;
+  }
+  .ready .eyebrow {
+    animation-delay: 0.18s;
+  }
+  .ready h1 .line:first-child > span {
+    animation-delay: 0.24s;
+  }
+  .ready h1 .line:last-child > span {
+    animation-delay: 0.34s;
+  }
+  .ready .intro {
+    animation-delay: 0.48s;
+  }
+  .ready .github-button {
+    animation-delay: 0.56s;
+  }
+  .ready .entry-card {
+    animation-delay: 0.64s;
+  }
+  .ready .lobby-foot {
+    animation-delay: 0.76s;
+  }
+  .ready .mobile-notice {
+    animation-delay: 0.8s;
+  }
+  .ready .scene-caption {
+    animation-delay: 0.88s;
+  }
+  .ready .footer > * {
+    animation-delay: 0.96s;
+  }
 }
 @media (max-width: 900px) {
   .lobby {

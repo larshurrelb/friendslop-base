@@ -22,8 +22,8 @@ const $ = <T extends HTMLElement = HTMLElement>(id: string) =>
   document.getElementById(id) as T;
 $("app").innerHTML = `<div id="world"></div><div id="shade" class="shade"></div>
 <header class="topbar"><button id="about-button" class="brand" aria-label="About Friendslop Base"><span class="brand-mark"><svg viewBox="0 0 192 192" aria-hidden="true"><rect x="17" y="17" width="158" height="158" rx="46" fill="#26382d" transform="rotate(-11 96 96)"/><g fill="#d5ec99"><path d="M53.5 34.5L65.95 54.43A23.5 23.5 0 1 1 76.87 36.96Z"/><path d="M4 114a49.5 49.5 0 0 1 99 0Z"/><path d="M140 87.5L126.02 66.77A25 25 0 1 1 115 87.5Z"/><path d="M89 170a50.5 50.5 0 0 1 101 0Z"/></g></svg></span><span class="brand-word">friendslop <b>base</b></span><small></small></button><div id="top-actions" class="top-actions"><span id="net-mode" class="pill net-mode" hidden><i class="dot"></i> <span id="net-mode-text"></span></span><button id="help-button" class="icon-button" aria-label="Controls and help">?</button></div></header>
-<main id="lobby" class="lobby"><div class="eyebrow">A space for your people</div><h1>The starting point<br>for <em>Friendslop.</em></h1><p class="intro">An open-source Friendslop template.<br>Built with Three.js, Rapier physics, and spatial voice.</p><a class="github-button" href="https://github.com/larshurrelb/friendslop-base" target="_blank" rel="noopener noreferrer" aria-label="Get Friendslop Base on GitHub">Get it on GitHub <span class="github-arrow" aria-hidden="true">↗</span></a><form id="entry" class="entry-card"><label for="name">WHAT SHOULD WE CALL YOU?</label><div class="name-input"><div class="avatar-chip">✳</div><input id="name" aria-label="Your name" autocomplete="nickname" maxlength="20" placeholder="Your name" required value="Guest"></div><button class="primary" id="create" type="submit">Create a room <span>↗</span></button><div class="separator">or find your friends</div><div class="join-row"><input id="join-code" aria-label="Room code" placeholder="ROOM CODE" maxlength="6" autocomplete="off"><button id="join" type="button">Join →</button></div><div class="entry-note">No accounts. Just a room code.</div><p id="entry-error" class="error" hidden></p></form><div class="lobby-foot"><span>Up to 8 friends</span><span>Proximity voice</span><span>Yours to build on</span></div><p class="mobile-notice">A keyboard and mouse are required to play.</p></main>
-<div id="scene-caption" class="scene-caption"><b>Your next idea starts in here.</b><small>01 / THE COMMON ROOM</small></div>
+<main id="lobby" class="lobby"><div class="eyebrow">A space for your people</div><h1><span class="line"><span>The starting point</span></span><span class="line"><span>for <em>Friendslop.</em></span></span></h1><p class="intro">An open-source Friendslop template.<br>Built with Three.js, Rapier physics, and spatial voice.</p><a class="github-button" href="https://github.com/larshurrelb/friendslop-base" target="_blank" rel="noopener noreferrer" aria-label="Get Friendslop Base on GitHub">Get it on GitHub <span class="github-arrow" aria-hidden="true">↗</span></a><form id="entry" class="entry-card"><label for="name">WHAT SHOULD WE CALL YOU?</label><div class="name-input"><div class="avatar-chip">✳</div><input id="name" aria-label="Your name" autocomplete="nickname" maxlength="20" placeholder="Your name" required value="Guest"></div><button class="primary" id="create" type="submit">Create a room <span>↗</span></button><div class="separator">or find your friends</div><div class="join-row"><input id="join-code" aria-label="Room code" placeholder="ROOM CODE" maxlength="6" autocomplete="off"><button id="join" type="button">Join →</button></div><div class="entry-note">No accounts. Just a room code.</div><p id="entry-error" class="error" hidden></p></form><div class="lobby-foot"><span>Up to 8 friends</span><span>Proximity voice</span><span>Yours to build on</span></div><p class="mobile-notice">A keyboard and mouse are required to play.</p></main>
+<div id="scene-caption" class="scene-caption"><b>Your next idea starts in here.</b><small>01 / THE COMMON ROOM</small><small class="drag-hint">Drag to turn · scroll to zoom</small></div>
 <footer id="footer" class="footer"><span>A small beginning for a very good time.</span><span class="version">FRIENDSLOP BASE &nbsp; / &nbsp; v0.1</span></footer>
 <div id="hud" class="hud" hidden><div class="room-bar"><div><small>YOUR ROOM</small><span id="room-code" class="room-code">------</span></div><button id="copy-room" aria-label="Copy room invite">Copy invite ↗</button><span id="player-count" class="count">1 / 8</span></div><div id="crosshair" class="crosshair"></div><div id="hitflash" class="hitflash"></div><div id="interact" class="interact" hidden></div><div class="bottom-left"><span class="zone-icon">⌂</span><div><div id="zone-name" class="zone-name">The common room</div><div id="zone-desc" class="zone-desc">SMALL ROOM · SOFT REFLECTIONS</div></div></div><div class="voice-controls"><button id="enable-voice">Enable voice</button><button id="mute" hidden aria-label="Mute microphone">Mic on</button><select id="voice-mode" aria-label="Microphone mode"><option value="open">Open mic</option><option value="ptt">Push to talk</option></select><span id="speaking-light" class="speaking-light"></span></div><div class="bottom-right"><button id="friends-button">Friends <span id="friend-number">1</span></button><button id="debug-button">Diagnostics <span>⌁</span></button></div><div id="pause" class="pause"><div class="eyebrow" style="justify-content:center">You’re in good company</div><h2>Make yourself at home.</h2><p>Explore the room and bring a friend.<br>There’s nothing to win. Yet.</p><button id="resume" class="primary">Click to explore →</button><small>WASD to move · Mouse to look · Esc to pause</small></div></div>
 <aside id="friends" class="drawer" hidden><button class="close" data-close="friends" aria-label="Close friends">×</button><h3>In good company</h3><div id="member-list"></div><button id="solo-tab" class="primary">Open a second player <span>↗</span></button><p class="debug-note">Test solo in another tab. Use headphones when testing microphones.</p><button id="leave" class="primary" style="background:transparent;color:#637554;border-color:#c4d0b6">Leave room</button></aside>
@@ -136,6 +136,7 @@ if (params.has("fresh")) {
 const movementSounds = new MovementSounds((position, kind) => voice.spatial?.effect(position, kind));
 function setPlaying(value: boolean) {
   movementSounds.clear();
+  document.body.classList.toggle("playing", value);
   for (const name of [
     "lobby",
     "shade",
@@ -481,6 +482,55 @@ async function lock() {
   }
 }
 $("resume").onclick = () => void lock();
+/**
+ * The lobby's backdrop is a camera you can turn. Anywhere that is not a control is a drag
+ * handle, and only before you join — once you are in a room the pointer belongs to the game.
+ */
+const CONTROLS = "input, button, select, textarea, a, .entry-card, .drawer";
+let drag: { id: number; x: number; y: number; time: number } | undefined;
+const inLobby = (e: PointerEvent) =>
+  !connected && !(e.target as Element | null)?.closest?.(CONTROLS);
+addEventListener("pointerdown", (e) => {
+  if (e.button !== 0 || !inLobby(e)) return;
+  // Claim the gesture so a drag that starts over the headline turns the room, not the text.
+  e.preventDefault();
+  drag = { id: e.pointerId, x: e.clientX, y: e.clientY, time: e.timeStamp };
+  scene.grab();
+  document.body.classList.add("turning");
+});
+addEventListener("pointermove", (e) => {
+  if (!drag || e.pointerId !== drag.id) {
+    if (!connected)
+      scene.aim(
+        (e.clientX / innerWidth) * 2 - 1,
+        (e.clientY / innerHeight) * 2 - 1,
+      );
+    return;
+  }
+  if (!(e.buttons & 1)) return stopTurning();
+  scene.orbitBy(
+    e.clientX - drag.x,
+    e.clientY - drag.y,
+    (e.timeStamp - drag.time) / 1000,
+  );
+  drag = { id: drag.id, x: e.clientX, y: e.clientY, time: e.timeStamp };
+});
+function stopTurning() {
+  if (!drag) return;
+  drag = undefined;
+  scene.letGo();
+  document.body.classList.remove("turning");
+}
+// A button released outside the window never reaches us, so a move with nothing held ends it.
+for (const end of ["pointerup", "pointercancel", "blur"])
+  addEventListener(end, stopTurning);
+addEventListener(
+  "wheel",
+  (e) => {
+    if (!connected) scene.zoomBy(e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY);
+  },
+  { passive: true },
+);
 canvas.onclick = () => {
   if (connected && !document.pointerLockElement && !previewControls)
     void lock();
@@ -788,7 +838,7 @@ function frame(now: number) {
     voice.spatial?.update(scene.camera.position, yaw, pitch);
   } else {
     acc = 0;
-    scene.overview(now / 1000);
+    scene.overview(dt);
   }
   scene.render(dt);
   debug(now);
@@ -797,6 +847,8 @@ function frame(now: number) {
 try {
   await Promise.all([initPhysics(), scene.loaded, networkReady]);
   $("loading").hidden = true;
+  // The copy is held back until the world behind it is ready, then arrives with the camera.
+  document.body.classList.add("ready");
   requestAnimationFrame(frame);
 } catch (e) {
   $("loading").textContent = `Could not open the room: ${String(e)}`;
